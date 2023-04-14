@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ajouter un Evènement</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}">
+</head>
+<body>
+    {% include 'menu.html' %}
+    <!-- Quand le formulaire en remplit. Cela execute la fonction add_tache dans views.py et ajoute une donnée dans la base de données. (sauf si le formulaire est invalide) -->
+    <form method="POST" action="{% url 'add_tache' %}" class="form_ajout">
+        {% csrf_token %} <!-- Créer un token pour empêcher les attaques de type CSRF-->
+        <label for="titre">Titre :</label>
+        <input type="text" id="titre" name="titre" max="50" required><br>        
+
+        <label for="start">Date de début :</label>
+        <input type="date" id="start" name="start" required><br>
+
+        <label for="end">Date de fin :</label>
+        <input type="date" id="end" name="end" required><br>
+
+        <label for="num_certif">Service notification :</label>
+        <input type="number" id="num_certif" name="num_certif" step="any" min="0" max="999999999"><br>
+
+        <label for="sn">Serial number :</label>
+        <input type="text" id="sn" name="sn" max="50" required><br>  
+
+        <label for="pn">PN :</label>
+        <input type="text" id="pn" name="pn" max="50" required><br>   
+
+        <label for="lieu">Lieu de l'opération:</label>
+        <select id="lieu" name="lieu" required>
+            <option value="in house" selected>In house</option>
+            <option value="in site">On site</option>
+        </select><br>
+
+        <label for="type">type d'opération :</label>
+        <select id="type" name="type" required>
+            <option value="VGP" selected>VGP</option>
+            <option value="Reper">Reper</option>
+        </select><br>
+
+        <label for="statut">type d'opération :</label>
+        <select id="statut" name="statut" required>
+            <option value="à faire" selected>à faire</option>
+            <option value="en cours">en cours</option>
+            <option value="fini">fini</option>
+        </select><br>
+
+        <label for="nom_client">Nom du client :</label>
+        <input type="text" id="nom_client" name="nom_client" max="50" required><br>
+
+        <label for="commentaire">*Commentaire :</label>
+        <input type="text" id="commentaire" name="commentaire" max="300" ><br>
+
+        <label>Techniciens:</label>
+        {% for technicien in form.fields.techniciens.queryset %}
+            <label>
+                <input type="checkbox" name="techniciens" value="{{ technicien.pk }}" {% if technicien in form.instance.techniciens.all %}checked{% endif %}>
+                {{ technicien.nom }} {{ technicien.prenom }}
+            </label>
+        {% endfor %}
+
+        <input type="submit" id="submitBtn" name ="enregistrer" value ="Enregistrer">
+        <p>* Champ non obligatoire.</p>
+    </form>
+    <script>
+        // récupère les éléments DOM
+        var startInput = document.getElementById('start');
+        var endInput = document.getElementById('end');
+        const submitBtn = document.getElementById('submitBtn');
+      
+        // ajoute un événement lorsqu'un champ de date est modifié
+        startInput.addEventListener('change', validateDate);
+        endInput.addEventListener('change', validateDate);
+      
+        // fonction de validation des dates
+        function validateDate() {
+          const startDate = Date.parse(startInput.value);
+          const endDate = Date.parse(endInput.value);
+      
+          if (endDate < startDate) {
+            submitBtn.disabled = true;
+            endInput.value = null;
+            alert('La date de fin doit être supérieure à la date de début.');
+          } else {
+            submitBtn.disabled = false;
+            endInput.setCustomValidity('');
+          }
+        }
+      </script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+.menu {
+  background-color: #f8f8f870;
+  height: 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  margin: 20px;
+}
+
+.menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+.menu li {
+  margin-right: 20px;
+}
+
+.menu a {
+  text-decoration: none;
+  color: #333;
+  font-weight: bold;
+  font-size: 20px;
+  transition: all 0.3s ease;
+}
+
+.menu a:hover {
+  color: #666;
+}
+
+.form_ajout {
+  max-width: 500px;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+  
+.form_ajout label {
+  display: block;
+  margin-bottom: 8px;
+}
+  
+.form_ajout input[type="text"], input[type="date"], input[type="number"], select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+}
+
+.form_ajout button[type="submit"], input[type="submit"] {
+  background-color: #4CAF50;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.form_ajout button[type="submit"]:hover, input[type="submit"]:hover {
+  background-color: #45a049;
+}
+
+p {
+  font-size: 14px;
+  margin-top: 16px;
+}
+
+.form_modal {
+  display: flex;
+  justify-content: space-between;
+}
+
+.form_modal_modif input, select {
+  max-width: 200px;
+}
+
+.form_item_modal_select {
+  margin: 10px;
+}
+
+.form_item_modal_input {
+  margin: 10px;
+}
+
+#modifModal {
+  overflow-y:scroll;
+}
+
+.form_item_modal_checkbox {
+  display: flex;
+}
+
+.form_container_modal_checkbox {
+  display: flex;
+}
+
+.test {
+  display: block;
+  margin-left: 20px;
+}

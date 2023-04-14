@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Ajouter un Evènement</title>
+        {% load static %}
+        <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}">
+        <style type="text/css">
+            table {
+                border-collapse: collapse;
+                width: auto;
+                margin: auto;
+            }
+            th, td {
+                text-align: left;
+                padding: 8px;
+            }
+            th {
+                background-color: #4CAF50;
+                color: #F5F3F3;
+            }
+            tr:nth-child(even) {
+                background-color: rgb(242, 242, 242);
+            }
+        </style>
+    </head>
+    <body>
+        {% include 'menu.html' %}
+        {{ taches|safe }}
+    </body>
+</html>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Emploi du temps</title>
+        {% load static %}
+        <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}">
+        <link href='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.1.0/fullcalendar.print.min.css' rel='stylesheet' media='print' />
+        <link href='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.1.0/fullcalendar.min.css' rel='stylesheet' />        
+        <link href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' rel='stylesheet' />
+        <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
+        <script src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js'></script>
+        <script src='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.1.0/fullcalendar.min.js'></script>
+        <script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js'></script>
+    </head>
+    <body>
+        {% block content %}{% endblock %}
+        {% csrf_token %}
+        <script>
+        const PAS_DE_TECHNICIEN = 0;
+        const UN_TECHNICIEN = 1;
+        //Création du csrftoken, pour empêcher les attaques de type CSRF
+        var csrftoken = jQuery("[name=csrfmiddlewaretoken]").val();
+        $(document).ready(function () {
+            var calendar = $('#calendar').fullCalendar({
+                editable: true,
+                eventResizableFromStart: true,
+                header: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: ''
+                },
+                displayEventTime: false,
+                events: '/all_taches',
+                eventLimit: true,
+                eventRender: function(events, element) {
+                    element.css('font-weight', 'bold');
+                },
+                eventResize: function (event) {
+                    var id_tache = event.id_tache
+                    var start = moment(event.start).format('YYYY-MM-DD');
+                    var end = moment(event.end).format('YYYY-MM-DD');
+                    $.ajax({
+                        type: "POST",
+                        url: '/update/'+ id_tache +'/',
+                        data: {
+                            'start': start,
+                            'end': end,
+                            'csrfmiddlewaretoken': csrftoken
+                        },
+                        dataType: "json",
+                        success: function (data) {
+                            calendar.fullCalendar('refetchEvents');
+                        },
+                        error: function (data) {
+                            calendar.fullCalendar('refetchEvents');
+                            alert('Modification impossible. Erreur system');
+                        }
+                    });
+                },
+                eventDrop: function (event) {
+                    var id_tache = event.id_tache;
+                    var start =  moment(event.start).format('YYYY-MM-DD');
+                    var end = moment(event.end).format('YYYY-MM-DD');
+                    $.ajax({
+                        type: "POST",
+                        url: '/update/'+ id_tache +'/',
+                        data: {
+                            'start': start,
+                            'end': end,
+                            'csrfmiddlewaretoken': csrftoken
+                        },
+                        dataType: "json",
+                        success: function (data) {
+                            calendar.fullCalendar('refetchEvents');
+                        },
+                        error: function (data) {
+                            calendar.fullCalendar('refetchEvents');
+                            alert('Modification impossible. Erreur system');
+                        }
+                    });
+                },
+
+                eventClick: function(event) {
+                    var id_tache = event.id_tache
+                    // Remplir les champs de la boîte de dialogue modale avec les détails de l'événement
+                    $('#titre').html(event.title);
+                    $('#start').html(moment(event.start).format('DD/MM/YYYY'));
+                    $('#end').html(moment(event.end).subtract(1, 'days').format('DD/MM/YYYY'));
+                    $('#num_certif').html(event.num_certif);
+                    $('#sn').html(event.sn);
+                    $('#pn').html(event.pn);
+                    $('#lieu').html(event.lieu);
+                    $('#type').html(event.type);
+                    $('#statut').html(event.statut);
+                    $('#nom_client').html(event.nom_client);
+                    $('#commentaire').html(event.commentaire);
+
+                    // Récupère les techniciens associés à la tache
+                    $.ajax({
+                        url: '/get_techniciens/'+ id_tache +'/',
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            var techniciens = data.techniciens;
+                            var techniciensText = '';
+                            switch (techniciens.length){
+                                case PAS_DE_TECHNICIEN:
+                                    //Si pas de technicien alors on affiche rien
+                                    $('#techniciens').html(techniciensText);
+                                    break;
+                                case UN_TECHNICIEN: 
+                                    //Si 1 technicien alors on affiche son nom et prénom
+                                    techniciensText =techniciens[0].prenom + ' ' + techniciens[0].nom;
+                                    $('#techniciens').html(techniciensText);
+                                    break;
+                                default:
+                                    //Si + de 1 technicien alors on affiche le nom et prénom de chacun en les séparant par une virgule
+                                    for (var i = 0; i < techniciens.length; i++) {
+                                        techniciensText += techniciens[i].prenom + ' ' + techniciens[i].nom + ', ';
+                                    }
+                                    $('#techniciens').html(techniciensText);
+                                    break;
+                            }                            
+                        },
+                        error: function(data) {
+                            calendar.fullCalendar('refetchEvents');
+                            console.log('Erreur lors de la récupération des techniciens');
+                        }
+                    });
+                    $('#eventModal').modal('show');
+                    // Modification d'une tâche
+                    $('#editEventButton').off('click');
+                    $('#editEventButton').click(function() {
+                        $('#eventModal').modal('hide');
+                        //Affectation des données associé à la tache dans le formulaire de modification
+                        var end_date = new Date(event.end);
+                        end_date.setDate(end_date.getDate() - 1);
+                        var endISO = end_date.toISOString().slice(0, 10);
+                        $('#titre_modif').val(event.title);
+                        $('#start_modif').val(event.start.toISOString().slice(0,10));
+                        $('#end_modif').val(endISO);
+                        $('#num_certif_modif').val(event.num_certif);
+                        $('#sn_modif').val(event.sn);
+                        $('#pn_modif').val(event.pn);
+                        $('#lieu_modif').val(event.lieu);
+                        $('#type_modif').val(event.type);
+                        $('#statut_modif').val(event.statut);
+                        $('#nom_client_modif').val(event.nom_client);
+                        $('#commentaire_modif').val(event.commentaire);
+                        //Afichage du modal bootstrap (popUp)
+                        $('#modifModal').modal('show');
+
+                        //Gestion bouton valider du modal modification
+                        $('#validerModif').off('click');
+                        $('#validerModif').click(function() {
+                            $.ajax({
+                                type: 'POST',
+                                url: '/modifier_tache/'+ id_tache +'/',
+                                data: $('#form_modif').serialize(),
+                                success: function(response) {
+                                    calendar.fullCalendar('refetchEvents');
+                                    $('#modifModal').modal('hide');
+                                    console.log('Modification effectuées');
+
+                                    //Reprogrammation à l'année prochaine d'une tache de type VGP on site terminé.
+                                    if ($('#type_modif').val() == 'VGP' && $('#statut_modif').val() == 'fini' && $('#lieu_modif').val() == 'on site') {
+                                        var data = $('#form_modif').serialize();
+                                        var start = new Date($('#start_modif').val());
+                                        var end = new Date($('#end_modif').val());                                 
+                                        start.setFullYear(start.getFullYear() + 1);
+                                        end.setFullYear(end.getFullYear() + 1);
+                                        data = data.replace(/start=[^&]*/, 'start=' + start.toISOString().slice(0,10));
+                                        data = data.replace(/end=[^&]*/, 'end=' + end.toISOString().slice(0,10));
+                                        $.ajax({
+                                            type: 'POST',
+                                            url: '/save_tache/',
+                                            data: data,
+                                            dataType: 'json',
+                                            success: function(response) {
+                                                calendar.fullCalendar('refetchEvents');
+                                                $('#modifModal').modal('hide');
+                                                console.log('Modification effectuées');
+                                            },
+                                            error: function(error) {
+                                                calendar.fullCalendar('refetchEvents');
+                                                alert('Erreur lors la modification des données : ' + error)
+                                                console.log('Erreur lors la modification des données : ' + error);
+                                            }
+                                        });
+                                    }
+                                },
+                                error: function(error) {
+                                    calendar.fullCalendar('refetchEvents');
+                                    alert('Erreur lors la modification des données : ' + error)
+                                    console.log('Erreur lors la modification des données : ' + error);
+                                }
+                            });
+                        });
+                    });
+
+                    // Bouton supprimer
+                    $('#deleteEventButton').off('click');
+                    $('#deleteEventButton').click(function() {
+                        $.ajax({
+                            type: "GET",
+                            url: '/remove/'+ id_tache +'/',
+                            dataType: "json",
+                            success: function (data) {
+                                calendar.fullCalendar('refetchEvents');
+                            },
+                            error: function (data) {
+                                calendar.fullCalendar('refetchEvents');
+                                alert('Suppression impossible. Erreur système');
+                            }                            
+                        });
+                        $('#eventModal').modal('hide');
+                    });
+                }
+            });
+        });
+
+        //Après la suppression on ferme le modal
+        $('#eventModal').on('hidden.bs.modal', function (e) {
+            $('#editEventButton').off('click');
+            $('#deleteEventButton').off('click');
+        });
+        </script>
+
+        <!-- Le modal description d'une tache -->
+        <div class="modal fade" id="eventModal" tabindex="-1" role="dialog" aria-labelledby="eventModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="eventModalLabel">Détails de l'événement</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Contenu de la boîte de dialogue modale -->
+                        <p><strong>Titre :</strong> <span id="titre"></span></p>
+                        <p><strong>Début :</strong> <span id="start"></span></p>
+                        <p><strong>Fin :</strong> <span id="end"></span></p>
+                        <p><strong>Numéro certificat :</strong> <span id="num_certif"></span></p>
+                        <p><strong>Serial number :</strong> <span id="sn"></span></p>
+                        <p><strong>PN :</strong> <span id="pn"></span></p>
+                        <p><strong>Lieu :</strong> <span id="lieu"></span></p>
+                        <p><strong>Type :</strong> <span id="type"></span></p>
+                        <p><strong>Statut :</strong> <span id="statut"></span></p>
+                        <p><strong>Nom du client :</strong> <span id="nom_client"></span></p>
+                        <p><strong>Technicien(s) :</strong> <span id="techniciens"></span></p>
+                        <p><strong>Commentaire :</strong> <span id="commentaire"></span></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+                        <button type="button" class="btn btn-primary" id="editEventButton">Modifier</button>
+                        <button type="button" class="btn btn-danger" id="deleteEventButton">Supprimer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal modification -->
+        <div class="modal fade" id="modifModal" tabindex="-1" role="dialog" aria-labelledby="eventModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="eventModalLabel">Détails de l'événement</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form class="form_modal_modif" id="form_modif">
+                            {% csrf_token %}
+                            <div class="form_item_modal_input">
+                                <label for="titre_modif">Titre :</label>
+                                <input type="text" id="titre_modif" name="titre">        
+                            </div>
+                            <div class="form_item_modal_input">
+                                <label for="start_modif">Date de début :</label>
+                                <input type="date" id="start_modif" name="start">
+                            </div>
+                            <div class="form_item_modal_input">
+                                <label for="end_modif">Date de fin :</label>
+                                <input type="date" id="end_modif" name="end">
+                            </div>
+                            <div class="form_item_modal_input">
+                                <label for="num_certif_modif">Numéro de certificat :</label>
+                                <input type="number" id="num_certif_modif" name="num_certif" step="any" min="0" max="999999999">
+                            </div>
+                            <div class="form_item_modal_input">
+                                <label for="sn_modif">Serial number :</label>
+                                <input type="text" id="sn_modif" name="sn">
+                            </div>
+                            <div class="form_item_modal_input">
+                                <label for="pn_modif">PN :</label>
+                                <input type="text" id="pn_modif" name="pn">  
+                            </div>
+                            <div class="form_item_modal_select">
+                                <label for="lieu_modif">Lieu de l'opération:</label>
+                                <select id="lieu_modif" name="lieu">
+                                    <option value="in house" selected>In house</option>
+                                    <option value="on site">On site</option>
+                                </select><br>
+                            </div>
+                            <div class="form_item_modal_select">
+                                <label for="type_modif">type d'opération :</label>
+                                <select id="type_modif" name="type">
+                                    <option value="VGP" selected>VGP</option>
+                                    <option value="Reper">Reper</option>
+                                </select><br>
+                            </div>
+                            <div class="form_item_modal_select">
+                                <label for="statut_modif">Statut :</label>
+                                <select id="statut_modif" name="statut">
+                                    <option value="à faire" selected>à faire</option>
+                                    <option value="en cours">en cours</option>
+                                    <option value="fini">fini</option>
+                                </select><br>
+                            </div>
+                            <div class="form_item_modal_input">
+                                <label for="nom_client_modif">Nom du client :</label>
+                                <input type="text" id="nom_client_modif" name="nom_client"><br>
+                            </div>
+                            <div class="form_item_modal_textarea">
+                                <label for="commentaire_modif">Commentaire :</label>
+                                <textarea type="text" id="commentaire_modif" name="commentaire"></textarea>
+                            </div>
+                            <div class="form_container_modal_checkbox">
+                                <label>Techniciens:</label>
+                                <div class="test">
+                                    <div class="form_item_modal_checkbox">
+                                        <label>
+                                            <input type="checkbox" name="techniciens" value="1">
+                                            Auriol Clément
+                                        </label>
+                                    </div>
+                                    <div class="form_item_modal_checkbox">
+                                        <label>
+                                            <input type="checkbox" name="techniciens" value="2">
+                                            Galve Franck
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+                        <button type="button" class="btn btn-primary" id="validerModif">Valider</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
