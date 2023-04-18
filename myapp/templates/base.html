@@ -32,7 +32,7 @@
                 displayEventTime: false,
                 eventSources: [
                     '/all_taches',
-                    '/all_abscences'    
+                    '/all_absences'    
                 ],
                 eventRender: function(event, element) {
                     element.css('font-weight', 'bold');
@@ -75,10 +75,11 @@
                         })                                          
                     }
                 },
-                eventResize: function (event) {
-                    var id_tache = event.id_tache;
-                    var start = moment(event.start).format('YYYY-MM-DD HH:mm:ss');
-                    var end = moment(event.end).format('YYYY-MM-DD HH:mm:ss');
+                eventResize: function(info) {
+                    console.log(info);
+                    var id_tache = info.id_tache;
+                    var start = moment(info.start).format('YYYY-MM-DD HH:mm:ss');
+                    var end = moment(info.end).format('YYYY-MM-DD HH:mm:ss');
                     $.ajax({
                         type: "POST",
                         url: '/update/'+ id_tache +'/',
@@ -391,6 +392,5 @@
                 </div>
             </div>
         </div>
-        {% include 'Footer.html' %}
     </body>
 </html>

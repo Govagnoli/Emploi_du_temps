@@ -3,7 +3,7 @@ from datetime import datetime
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import JsonResponse
 from myapp.forms import * 
-from myapp.models import Tache, Abscence
+from myapp.models import Tache, Absence
 import pandas as pd
 from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
@@ -46,11 +46,11 @@ def all_taches(request):
         })
     return JsonResponse(out, safe=False)
 
-def all_abscences(request):
-    all_absences = Abscence.objects.filter(start__range=[request.GET.get("start", None), request.GET.get("end", None)])                                                                                
+def all_absences(request):
+    all_absences = Absence.objects.filter(start__range=[request.GET.get("start", None), request.GET.get("end", None)])                                                                                
     out = []  
-    for abscence in all_absences:
-        techniciens = abscence.techniciens.all()
+    for absence in all_absences:
+        techniciens = absence.techniciens.all()
         if len(techniciens) > 1:
             backgroundColor = "#000000"
         elif techniciens[0].id_tech == 1:
@@ -59,15 +59,15 @@ def all_abscences(request):
             backgroundColor = "#805858"
 
 
-        end = abscence.end
+        end = absence.end
         end += timedelta(days=1)
         out.append({                                                                                                     
-            'id_abs': abscence.id_abs,
-            'start': abscence.start.strftime('%Y-%m-%d'),
+            'id_abs': absence.id_abs,
+            'start': absence.start.strftime('%Y-%m-%d'),
             'end':end.strftime('%Y-%m-%d'),
             'rendering': 'background',
             'backgroundColor': '#000000',
-            'titre': "Absence : " + abscence.motif,
+            'titre': "Absence : " + absence.motif,
             'type': 'absence',                 
         })
     return JsonResponse(out, safe=False)
@@ -87,9 +87,9 @@ def add_tache(request):
         form = tachesForm()
     return render(request, 'ajout.html', {'form': form})
 
-def add_abscence(request):
+def add_absence(request):
     if request.method == "POST":
-        form = AbscenceForm(request.POST)
+        form = AbsenceForm(request.POST)
         if form.is_valid():
             form.cleaned_data['end'] = form.cleaned_data['end'].replace(hour=12, minute=0, second=0, microsecond=0)
             abs = form.save(commit=False)
@@ -99,7 +99,7 @@ def add_abscence(request):
             return redirect('index') # Redirige vers la page d'accueil après ajout réussi
     else:
         form = tachesForm()
-    return render(request, 'Declaration_Abscences.html', {'form': form})
+    return render(request, 'Declaration_Absences.html', {'form': form})
 
 # À partir du calendrier permet lors de la modification d'une tache existante de mettre à jour les données et donc de possiblement les modifier
 # à noter que toutes les données sont modifiés. Ca récupère toutes les données du formulaire puis écrase les données de la tache dans la base de données
@@ -148,7 +148,7 @@ def get_techniciens(request, id_tache):
     return JsonResponse({'techniciens': techniciens_list})
 
 def get_techniciens_abs(request, id_abs):
-    absence = get_object_or_404(Abscence, id_abs=id_abs)
+    absence = get_object_or_404(Absence, id_abs=id_abs)
     techniciens = absence.techniciens.all()
     techniciens_list = []
     for technicien in techniciens:
@@ -196,7 +196,7 @@ def save_tache(request):
         return JsonResponse({'success': False})
     
 def absences(request):
-    absences = Abscence.objects.filter(end__gte=datetime.today()).order_by('start')
+    absences = Absence.objects.filter(end__gte=datetime.today()).order_by('start')
     if not absences:
         return render(request, 'Absences.html', {'absences': "Aucune absence n'est programmée"})
     tab = '<table border="1" class="dataframe" id="tab"> <thead> <tr style="text-align: right;"></th><th></th><th>Motif d\'absence</th> <th>date de début</th> <th>date de fin</th> </tr> </thead> <tbody>'
@@ -210,17 +210,17 @@ def absences(request):
     return render(request, 'Absences.html', {'absences': tab})
 
 def getAbsenceById(request, id_abs):
-    absence = get_object_or_404(Abscence, id_abs=id_abs)
+    absence = get_object_or_404(Absence, id_abs=id_abs)
     listAbsence = []
     listAbsence.append(absence.id_abs)
     listAbsence.append(absence.motif)
     listAbsence.append(absence.start)
     listAbsence.append(absence.end)
-    return JsonResponse({'abscense': listAbsence})
+    return JsonResponse({'absence': listAbsence})
 
 def modifier_absence(request, id_abs):
-    instance = get_object_or_404(Abscence, id_abs=id_abs)
-    form = AbscenceForm(request.POST, instance=instance)
+    instance = get_object_or_404(Absence, id_abs=id_abs)
+    form = AbsenceForm(request.POST, instance=instance)
     if form.is_valid():
         form.cleaned_data['end'] = form.cleaned_data['end'].replace(hour=12, minute=0, second=0, microsecond=0)
         absence = form.save(commit=False)
@@ -230,3 +230,10 @@ def modifier_absence(request, id_abs):
         return redirect('index') # Redirige vers la page d'accueil après modification réussi
     context = {'form': form}
     return render(request, 'Absences.html', context)
+
+def removeAbsence(request, id_abs):
+    absence = get_object_or_404(Absence, id_abs=id_abs)
+    absence.techniciens.clear()
+    absence.delete()
+    data = {}
+    return JsonResponse(data)

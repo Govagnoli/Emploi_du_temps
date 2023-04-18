@@ -25,7 +25,7 @@ class tachesForm(forms.ModelForm):
             'nom_client',
         ]
 
-class AbscenceForm(forms.ModelForm):
+class AbsenceForm(forms.ModelForm):
     
     techniciens = forms.ModelMultipleChoiceField(
         queryset=Techniciens.objects.all(),
@@ -34,7 +34,7 @@ class AbscenceForm(forms.ModelForm):
     )
     
     class Meta:
-        model = Abscence
+        model = Absence
         fields = [
             'motif',
             'start', 

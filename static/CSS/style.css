@@ -218,6 +218,11 @@ h3 {
   flex-basis: 80%;
 }
 
+
+#tab {
+  cursor: pointer;
+}
+
 .espace {
   min-height: 25%;
 }

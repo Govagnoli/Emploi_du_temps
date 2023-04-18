@@ -52,10 +52,9 @@
                     url: '/getAbsenceById/'+ id_abs +'/',
                     dataType: 'json',
                     success: function (data) {
-                        console.log(data.abscense)
-                        const dateDebut = new Date(data.abscense[2]).toISOString().slice(0,10);
-                        const dateFin = new Date(data.abscense[3]).toISOString().slice(0,10);
-                        $('#motif').val(data.abscense[1]);
+                        const dateDebut = new Date(data.absence[2]).toISOString().slice(0,10);
+                        const dateFin = new Date(data.absence[3]).toISOString().slice(0,10);
+                        $('#motif').val(data.absence[1]);
                         $('#start').val(dateDebut);
                         $('#end').val(dateFin);
                         $('#modifModal').modal('show');
@@ -85,7 +84,6 @@
                                 });                      
                             },
                             error: function(data) {
-                                calendar.fullCalendar('refetchEvents');
                                 console.log('Erreur lors de la récupération des techniciens');
                             }
                         });
@@ -99,22 +97,43 @@
                                 data: $('#form_modif').serialize(),
                                 success: function(response) {
                                     $('#modifModal').modal('hide');
+                                    location.reload();
                                     console.log('Modification effectuées');
                                 },
                                 error: function(error) {
-                                    calendar.fullCalendar('refetchEvents');
                                     alert('Erreur lors la modification des données : ' + error)
                                     console.log('Erreur lors la modification des données : ' + error);
                                 }
                             });
                         });
+
+                        // Bouton supprimer
+                        $('#deleteEventButton').off('click');
+                        $('#deleteEventButton').click(function() {
+                            $.ajax({
+                                type: "GET",
+                                url: '/removeAbsence/'+ id_abs +'/',
+                                dataType: "json",
+                                success: function (data) {
+                                    $('#modifModal').modal('hide');
+                                    location.reload();
+                                    console.log('Modification effectuées');
+                                },
+                                error: function (data) {
+                                    alert('Suppression impossible. Erreur système');
+                                    console.log('Suppression impossible. Erreur système');
+                                }                            
+                            });
+                            $('#eventModal').modal('hide');
+                        });
                     },
                     error: function (data) {
-                        alert("erreur")
+                        alert("Erreur; Veuillez cliquer sur une absence.")
                     }
                 });
             });
         });
+        
     </script>
     <div class="modal fade" id="modifModal" tabindex="-1" role="dialog" aria-labelledby="eventModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
@@ -162,11 +181,10 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
                     <button type="button" class="btn btn-primary" id="validerModif">Valider</button>
+                    <button type="button" class="btn btn-danger" id="deleteEventButton">Supprimer</button>
                 </div>
             </div>
         </div>
     </div>
-    <div class="espace"></div>
-    {% include 'Footer.html' %}
 </body>
 </html>

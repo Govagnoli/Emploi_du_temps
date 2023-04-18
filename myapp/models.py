@@ -5,7 +5,7 @@ class Techniciens(models.Model):
     nom = models.CharField(max_length=50,null=True,blank=True)
     prenom = models.CharField(max_length=50,null=True,blank=True)
 
-class Abscence(models.Model):
+class Absence(models.Model):
     id_abs = models.AutoField(primary_key=True)
     motif = models.CharField(max_length=50,null=True,blank=True)
     start = models.DateTimeField(null=True,blank=True)
