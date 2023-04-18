@@ -30,24 +30,64 @@
                     right: ''
                 },
                 displayEventTime: false,
-                events: '/all_taches',
-                eventLimit: true,
-                eventRender: function(events, element) {
+                eventSources: [
+                    '/all_taches',
+                    '/all_abscences'    
+                ],
+                eventRender: function(event, element) {
                     element.css('font-weight', 'bold');
+                    
+                    if(event.type == 'absence') {
+                        id_abs = event.id_abs;
+                        var techniciensText = '';
+                        $.ajax({
+                            url: '/get_techniciens_abs/'+ id_abs +'/',
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                var techniciens = data.techniciens;
+                                switch (techniciens.length){
+                                    case PAS_DE_TECHNICIEN:
+                                        break;
+                                    case UN_TECHNICIEN: 
+                                        //Si 1 technicien alors on affiche son nom et prénom
+                                        techniciensText =techniciens[0].prenom + ' ' + techniciens[0].nom;
+                                        break;
+                                    default:
+                                        //Si + de 1 technicien alors on affiche le nom et prénom de chacun en les séparant par une virgule
+                                        for (var i = 0; i < techniciens.length; i++) {
+                                            techniciensText += techniciens[i].prenom + ' ' + techniciens[i].nom + ', ';
+                                        }
+                                        techniciensText = techniciensText.slice(0, -2);
+                                        break;
+                                }
+                                element.append('<div class="fc-content"><span class="fc-title">' + event.titre+'<br>'+ "techniciens : " + techniciensText + '</span></div>');
+                                element.find('.fc-title').css({
+                                        'position': 'relative',
+                                        'z-index': '9999',
+                                        'color': '#F5F3F3',
+                                        'align-items': 'center',
+                                        'display': 'flex',
+                                        'justify-content': 'center',
+                                        'margin-top': '50px',
+                                });
+                            }                            
+                        })                                          
+                    }
                 },
                 eventResize: function (event) {
-                    var id_tache = event.id_tache
-                    var start = moment(event.start).format('YYYY-MM-DD');
-                    var end = moment(event.end).format('YYYY-MM-DD');
+                    var id_tache = event.id_tache;
+                    var start = moment(event.start).format('YYYY-MM-DD HH:mm:ss');
+                    var end = moment(event.end).format('YYYY-MM-DD HH:mm:ss');
                     $.ajax({
                         type: "POST",
                         url: '/update/'+ id_tache +'/',
+                        dataType: "json",
                         data: {
                             'start': start,
                             'end': end,
                             'csrfmiddlewaretoken': csrftoken
                         },
-                        dataType: "json",
                         success: function (data) {
                             calendar.fullCalendar('refetchEvents');
                         },
@@ -59,8 +99,8 @@
                 },
                 eventDrop: function (event) {
                     var id_tache = event.id_tache;
-                    var start =  moment(event.start).format('YYYY-MM-DD');
-                    var end = moment(event.end).format('YYYY-MM-DD');
+                    var start =  moment(event.start).format('YYYY-MM-DD HH:mm:ss');
+                    var end = moment(event.end).format('YYYY-MM-DD HH:mm:ss');
                     $.ajax({
                         type: "POST",
                         url: '/update/'+ id_tache +'/',
@@ -85,7 +125,7 @@
                     // Remplir les champs de la boîte de dialogue modale avec les détails de l'événement
                     $('#titre').html(event.title);
                     $('#start').html(moment(event.start).format('DD/MM/YYYY'));
-                    $('#end').html(moment(event.end).subtract(1, 'days').format('DD/MM/YYYY'));
+                    $('#end').html(moment(event.end).format('DD/MM/YYYY'));
                     $('#num_certif').html(event.num_certif);
                     $('#sn').html(event.sn);
                     $('#pn').html(event.pn);
@@ -118,6 +158,7 @@
                                     for (var i = 0; i < techniciens.length; i++) {
                                         techniciensText += techniciens[i].prenom + ' ' + techniciens[i].nom + ', ';
                                     }
+                                    techniciensText = techniciensText.slice(0, -2);
                                     $('#techniciens').html(techniciensText);
                                     break;
                             }                            
@@ -133,12 +174,9 @@
                     $('#editEventButton').click(function() {
                         $('#eventModal').modal('hide');
                         //Affectation des données associé à la tache dans le formulaire de modification
-                        var end_date = new Date(event.end);
-                        end_date.setDate(end_date.getDate() - 1);
-                        var endISO = end_date.toISOString().slice(0, 10);
                         $('#titre_modif').val(event.title);
                         $('#start_modif').val(event.start.toISOString().slice(0,10));
-                        $('#end_modif').val(endISO);
+                        $('#end_modif').val(event.end.toISOString().slice(0,10));
                         $('#num_certif_modif').val(event.num_certif);
                         $('#sn_modif').val(event.sn);
                         $('#pn_modif').val(event.pn);
@@ -275,7 +313,7 @@
                             {% csrf_token %}
                             <div class="form_item_modal_input">
                                 <label for="titre_modif">Titre :</label>
-                                <input type="text" id="titre_modif" name="titre">        
+                                <input type="text" id="titre_modif" name="titre" maxlength="50">        
                             </div>
                             <div class="form_item_modal_input">
                                 <label for="start_modif">Date de début :</label>
@@ -291,11 +329,11 @@
                             </div>
                             <div class="form_item_modal_input">
                                 <label for="sn_modif">Serial number :</label>
-                                <input type="text" id="sn_modif" name="sn">
+                                <input type="text" id="sn_modif" name="sn" maxlength="50">
                             </div>
                             <div class="form_item_modal_input">
                                 <label for="pn_modif">PN :</label>
-                                <input type="text" id="pn_modif" name="pn">  
+                                <input type="text" id="pn_modif" name="pn" maxlength="50">  
                             </div>
                             <div class="form_item_modal_select">
                                 <label for="lieu_modif">Lieu de l'opération:</label>
@@ -321,11 +359,11 @@
                             </div>
                             <div class="form_item_modal_input">
                                 <label for="nom_client_modif">Nom du client :</label>
-                                <input type="text" id="nom_client_modif" name="nom_client"><br>
+                                <input type="text" id="nom_client_modif" name="nom_client" maxlength="50"><br>
                             </div>
                             <div class="form_item_modal_textarea">
                                 <label for="commentaire_modif">Commentaire :</label>
-                                <textarea type="text" id="commentaire_modif" name="commentaire"></textarea>
+                                <textarea type="text" id="commentaire_modif" name="commentaire" maxlength="300"></textarea>
                             </div>
                             <div class="form_container_modal_checkbox">
                                 <label>Techniciens:</label>
@@ -353,5 +391,6 @@
                 </div>
             </div>
         </div>
+        {% include 'Footer.html' %}
     </body>
 </html>

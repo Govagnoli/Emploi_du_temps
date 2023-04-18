@@ -1,38 +1,114 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 body {
+  min-height: 100vh;
+  position: relative;
+  margin: 0;
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 0px;
+    margin-left: 0px;
   font-family: 'Roboto', sans-serif;
 }
 
 .menu {
-  background-color: #f8f8f870;
-  height: 50px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  margin: 20px;
+  background-color: #333;
+  padding: 0;
+  margin: 0;
+  margin-bottom: 50px;
 }
 
 .menu ul {
   list-style: none;
-  margin: 0;
   padding: 0;
-  display: flex;
+  margin: 0;
+  z-index: 1000;
 }
 
-.menu li {
-  margin-right: 20px;
+.menu ul li {
+  display: inline-block;
+  position: relative;
+  padding: 0;
+  margin: 0;
 }
 
-.menu a {
+.menu ul li a {
+  display: block;
+  padding: 25px;
+  color: #fff;
   text-decoration: none;
-  color: #333;
-  font-weight: bold;
-  font-size: 20px;
-  transition: all 0.3s ease;
 }
 
-.menu a:hover {
-  color: #666;
+.menu li:hover {
+  background-color: #555;
+}
+
+.menu ul li:hover > ul {
+  display: block;
+}
+
+.menu ul ul {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #333;
+  padding: 0;
+  margin: 0;
+}
+
+.menu ul ul li {
+  display: block;
+  width: 100%;
+}
+
+.menu ul ul li a {
+  display: block;
+  padding: 10px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.menu ul ul li:hover {
+  background-color: #555;
+}
+
+.menu ul ul li:hover > ul {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: auto;
+}
+
+.menu ul ul ul {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  background-color: #777;
+  padding: 0;
+  margin: 0;
+}
+
+.menu ul ul ul li {
+  display: block;
+}
+
+.menu ul ul ul li a {
+  display: block;
+  padding: 10px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.menu ul ul ul li:hover {
+  background-color: #555;
 }
 
 .form_ajout {
@@ -107,4 +183,105 @@ p {
 .test {
   display: block;
   margin-left: 20px;
+}
+
+h3 {
+  font-size: 20px;
+  text-align: auto;
+  margin-left: 20px;
+  margin-bottom: 30px;
+  color: #333;
+  text-shadow: 1px 1px #fff;
+}
+.container_absences {
+  display: flex;
+  justify-content: flex-start
+}
+.p_absences {
+  display: flex;
+  margin: 20px;
+}
+.h3_absences {
+  display: flex;
+  margin-left: 35px;
+  margin-bottom: 30px;
+  font-size: 20px;
+  text-align: auto;
+  margin-left: 20px;
+  color: #333;
+  text-shadow: 1px 1px #fff;
+}
+
+.df_absences {
+  display: flex;
+  margin-left: 20px;
+  flex-basis: 80%;
+}
+
+.espace {
+  min-height: 25%;
+}
+
+/* footer */
+footer{
+  margin-top: 40px;
+  display: flex;
+  width: 100%;
+  background-color: #333;
+  padding-bottom: 2%;
+  padding-top: 2%;
+  flex-flow: column wrap;
+  text-align: center;
+  justify-content: space-around;
+}
+
+.col {
+  display: flex;
+  box-sizing: border-box;
+  padding: 0px 20px 20px 20px;
+  flex-flow:column nowrap;
+  margin-left: auto;
+  margin-right: auto;
+}
+.col a{
+  color: white;
+  text-decoration: none;
+}
+.col h3 {
+  text-shadow: none;
+  text-transform: uppercase;
+  letter-spacing: .1rem;
+  margin-bottom: 10px;
+  padding: 0;
+  font-size: 20px;
+  line-height: 17px;
+  padding: 20px 0px 5px 0px;
+  color: white;
+}
+.col ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+.col p {
+  color: white;
+  font-size: 15px;
+  padding: 5px 0px 5px 0px;
+  transition: 0.2s;
+  margin-top: -3px;
+}
+.col ul li {
+  color: white;
+  font-size: 14px;
+  padding: 5px 0px 5px 0px;
+  transition: 0.2s;
+}
+
+.clearfix {
+clear: both;
+}
+.link_pages{
+  display: flex;
+  flex-direction: row;
+  margin-left: 50px;
 }

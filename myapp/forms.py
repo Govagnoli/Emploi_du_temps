@@ -24,3 +24,19 @@ class tachesForm(forms.ModelForm):
             'commentaire',
             'nom_client',
         ]
+
+class AbscenceForm(forms.ModelForm):
+    
+    techniciens = forms.ModelMultipleChoiceField(
+        queryset=Techniciens.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+    )
+    
+    class Meta:
+        model = Abscence
+        fields = [
+            'motif',
+            'start', 
+            'end',
+        ]

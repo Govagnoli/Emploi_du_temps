@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Les Absences</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' rel='stylesheet' />
+    <script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js'></script>
+
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}">
+    <style type="text/css">
+        table {
+            border-collapse: collapse;
+            width: auto;
+            margin: auto;
+        }
+        th, td {
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #4CAF50;
+            color: #F5F3F3;
+        }
+        tr:nth-child(even) {
+            background-color: rgb(242, 242, 242);
+        }
+    </style>
+</head>
+<body>
+    {% include 'menu.html' %}
+    <div class="container_absences">
+        <div class="h3_absences">
+            <h3>Vous trouverez ici toutes les prochaines absences.</h3>
+        </div> 
+    </div>
+    <div class="container_absences">
+        <div class="df_absences">
+            <p>En cliquant sur une ligne, vous pouvez modifier les informations concernant l'absence sélectionnée.</p>
+            {{absences|safe}}
+        </div>
+    </div>
+    <script defer>
+        const PAS_DE_TECHNICIEN = 0;
+        const UN_TECHNICIEN = 1;
+        document.addEventListener("DOMContentLoaded", function() {
+            const dataframe = document.getElementById('tab');
+            dataframe.addEventListener('click', (event) => {
+                const id_abs = event.target.parentNode.id;
+                $.ajax({
+                    type: "GET",
+                    url: '/getAbsenceById/'+ id_abs +'/',
+                    dataType: 'json',
+                    success: function (data) {
+                        console.log(data.abscense)
+                        const dateDebut = new Date(data.abscense[2]).toISOString().slice(0,10);
+                        const dateFin = new Date(data.abscense[3]).toISOString().slice(0,10);
+                        $('#motif').val(data.abscense[1]);
+                        $('#start').val(dateDebut);
+                        $('#end').val(dateFin);
+                        $('#modifModal').modal('show');
+
+                        // Récupère les techniciens associés à l'absence
+                        $.ajax({
+                            url: '/get_techniciens_abs/'+ id_abs +'/',
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                var techniciens = data.techniciens;
+                                tech1 = false
+                                tech2 = false
+                                techniciens.forEach(technicien => {
+                                    if(technicien.nom == "Auriol" || tech1) {
+                                        $('#tech1').prop('checked', true);
+                                        tech1 = true
+                                    } else {
+                                        $('#tech1').prop('checked', false);
+                                    }
+                                    if(technicien.nom == "Galve" || tech2) {
+                                        $('#tech2').prop('checked', true);
+                                        tech2 = true;
+                                    } else {
+                                        $('#tech2').prop('checked', false);
+                                    }
+                                });                      
+                            },
+                            error: function(data) {
+                                calendar.fullCalendar('refetchEvents');
+                                console.log('Erreur lors de la récupération des techniciens');
+                            }
+                        });
+
+                        //Gestion bouton valider du modal modification
+                        $('#validerModif').off('click');
+                        $('#validerModif').click(function() {
+                            $.ajax({
+                                type: 'POST',
+                                url: '/modifier_absence/'+ id_abs +'/',
+                                data: $('#form_modif').serialize(),
+                                success: function(response) {
+                                    $('#modifModal').modal('hide');
+                                    console.log('Modification effectuées');
+                                },
+                                error: function(error) {
+                                    calendar.fullCalendar('refetchEvents');
+                                    alert('Erreur lors la modification des données : ' + error)
+                                    console.log('Erreur lors la modification des données : ' + error);
+                                }
+                            });
+                        });
+                    },
+                    error: function (data) {
+                        alert("erreur")
+                    }
+                });
+            });
+        });
+    </script>
+    <div class="modal fade" id="modifModal" tabindex="-1" role="dialog" aria-labelledby="eventModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="eventModalLabel">Modification d'une absence</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form class="form_modal_modif" id="form_modif">
+                        {% csrf_token %}
+                        <div class="form_item_modal_input">
+                            <label for="motif">Motif :</label>
+                            <input type="text" id="motif" name="motif" maxlength="50">        
+                        </div>
+                        <div class="form_item_modal_input">
+                            <label for="start">Date de début :</label>
+                            <input type="date" id="start" name="start">
+                        </div>
+                        <div class="form_item_modal_input">
+                            <label for="end">Date de fin :</label>
+                            <input type="date" id="end" name="end">
+                        </div> 
+                        <div class="form_container_modal_checkbox">
+                            <label>Techniciens:</label>
+                            <div class="test">
+                                <div class="form_item_modal_checkbox">
+                                    <label>
+                                        <input type="checkbox" id="tech1" name="techniciens" value="1">
+                                        Auriol Clément
+                                    </label>
+                                </div>
+                                <div class="form_item_modal_checkbox">
+                                    <label>
+                                        <input type="checkbox" id="tech2" name="techniciens" value="2">
+                                        Galve Franck
+                                    </label>
+                                </div>
+                            </div>
+                        </div>              
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-primary" id="validerModif">Valider</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="espace"></div>
+    {% include 'Footer.html' %}
+</body>
+</html>

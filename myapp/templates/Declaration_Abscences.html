@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Déclarer une absence</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}">
+  </head>
+  <body>
+    {% include 'menu.html' %}
+    <h3>Formulaire pour déclarer vos prochaines absences.</h3>
+    <!-- Quand le formulaire est rempli, cela exécute la fonction add_tache dans views.py et ajoute une donnée dans la base de données (sauf si le formulaire est invalide). -->
+    <form method="POST" action="{% url 'add_abscence' %}" class="form_ajout">
+      {% csrf_token %} <!-- Créer un jeton pour empêcher les attaques de type CSRF -->
+      <label for="motif">*Motif :</label>
+      <input type="text" id="motif" name="motif" max="50" required><br>        
+
+      <label for="start">Date de début :</label>
+      <input type="date" id="start" name="start" required><br>
+
+      <label for="end">Date de fin :</label>
+      <input type="date" id="end" name="end" required><br>
+
+      <label>Techniciens :</label>
+      {% for technicien in form.fields.techniciens.queryset %}
+        <label>
+          <input type="checkbox" name="techniciens" value="{{ technicien.pk }}" {% if technicien in form.instance.techniciens.all %}checked{% endif %}>
+          {{ technicien.nom }} {{ technicien.prenom }}
+        </label>
+      {% endfor %}
+
+      <input type="submit" id="submitBtn" name="enregistrer" value="Enregistrer">
+      <p>* Champ non obligatoire.</p>
+    </form>
+
+    <script>
+      // récupère les éléments DOM
+      var startInput = document.getElementById('start');
+      var endInput = document.getElementById('end');
+      const submitBtn = document.getElementById('submitBtn');
+    
+      // ajoute un événement lorsqu'un champ de date est modifié
+      startInput.addEventListener('change', validateDate);
+      endInput.addEventListener('change', validateDate);
+    
+      // fonction de validation des dates
+      function validateDate() {
+        const startDate = Date.parse(startInput.value);
+        const endDate = Date.parse(endInput.value);
+        if (endDate < startDate) {
+          submitBtn.disabled = true;
+          endInput.value = null;
+          alert('La date de fin doit être supérieure à la date de début.');
+        } else {
+          submitBtn.disabled = false;
+          endInput.setCustomValidity('');
+        }
+      }
+    </script>
+
+    {% include 'Footer.html' %}
+  </body>
+</html>
