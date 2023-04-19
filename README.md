@@ -25,6 +25,8 @@ Pour les télécharger, veuillez installer Python (j'utilise la version 3.11.1) 
 ```
 pip install Django
 pip install pandas
+pip install mysqlclient
+pip install openpyxl
 ```
 
 Placez-vous dans votre répertoire racine du projet (où se trouve manage.py) et exécutez les commandes suivantes :
