@@ -1,6 +1,6 @@
 # Emploi_du_temps
 
-Mon application est un gestionnaire d'emploi du temps pour des techniciens. C'est une application web utilisant le framework django sur python.
+Mon application est un gestionnaire d'emploi du temps pour des techniciens. C'est une application web utilise le framework django sur python.
 
 Pour utiliser mon application vous devez avoir une base de données MYSQL (configurer votre connexion dans le fichier settings.py du répertoire devproject)
 
@@ -18,9 +18,9 @@ DATABASES = {
 }
 ```
 
-Penser à bien télécharger les ressources nécessaire pour faire fonctionner le projet. les requirements sont stockées dans le fichier requirements.txt. (Certains requirements sont nécessaire pour un hébergement chez heroku.)
+Penser à bien télécharger les ressources nécessaires pour faire fonctionner le projet. les requirements sont stockées dans le fichier requirements.txt. (Certains requirements sont nécessaires pour un hébergement chez heroku.)
 
-Pour les télécharger veuillez installer python (j'utilise la version 3.11.1) avec pip
+Pour les télécharger veuillez installer python (j'utilise la version 3.11.1) avec pip,
 et executer les commandes suivantes dans votre terminal (ou dans votre environnement virtuel du projet) 
 
 ```
@@ -39,4 +39,4 @@ Votre projet est maintenant configuré. Vous pouvez lancer l'application en fais
 python manage.py runserver
 ```
 
-et vous pouvez accéder à l'application web à l'adresse suivante : http://127.0.0.1:8000
+Vous pouvez accéder à l'application web à l'adresse suivante : http://127.0.0.1:8000
