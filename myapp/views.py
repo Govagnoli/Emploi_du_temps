@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from datetime import datetime
-import math
 import os
 from django.conf import settings
 from django.shortcuts import get_object_or_404, redirect, render
@@ -401,7 +400,7 @@ def add_Excell_taches(request):
             'commentaire': colonnes['commentaire'],
         }
         # mise à jour ou création de l'enregistrement correspondant dans la base de données
-        obj, created = Tache.objects.update_or_create(id_tache=colonnes['id_tache'], defaults=data)
+        Tache.objects.update_or_create(id_tache=colonnes['id_tache'], defaults=data)
 
     messages.success(request, 'Le fichier Excel a été importé avec succès!')
     return render(request, 'AjoutParExcell.html', {'dfExcell': dfFic.to_html})
