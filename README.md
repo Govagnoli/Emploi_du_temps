@@ -1,8 +1,8 @@
 # Emploi_du_temps
 
-Mon application est un gestionnaire d'emploi du temps pour des techniciens. C'est une application web utilise le framework django sur python.
+Mon application est un gestionnaire d'emploi du temps pour des techniciens. C'est une application web qui utilise le framework Django en Python.
 
-Pour utiliser mon application vous devez avoir une base de données MYSQL (configurer votre connexion dans le fichier settings.py du répertoire devproject)
+Pour utiliser mon application, vous devez avoir une base de données MySQL (configurez votre connexion dans le fichier settings.py du répertoire devproject).
 
 Voici la partie de settings.py correspondant à votre connexion à la base de données :
 ```
@@ -18,17 +18,16 @@ DATABASES = {
 }
 ```
 
-Penser à bien télécharger les ressources nécessaires pour faire fonctionner le projet. les requirements sont stockées dans le fichier requirements.txt. (Certains requirements sont nécessaires pour un hébergement chez heroku.)
+Pensez à bien télécharger les ressources nécessaires pour faire fonctionner le projet. Les requirements sont stockés dans le fichier requirements.txt. (Certains requirements sont nécessaires pour un hébergement chez Heroku.)
 
-Pour les télécharger veuillez installer python (j'utilise la version 3.11.1) avec pip,
-et executer les commandes suivantes dans votre terminal (ou dans votre environnement virtuel du projet) 
+Pour les télécharger, veuillez installer Python (j'utilise la version 3.11.1) avec pip et exécuter les commandes suivantes dans votre terminal (ou dans votre environnement virtuel du projet) :
 
 ```
 pip install Django
 pip install pandas
 ```
 
-Placer vous dans votre répertoire racine du projet (où se trouve manage.py) et executer les commandes suivantes
+Placez-vous dans votre répertoire racine du projet (où se trouve manage.py) et exécutez les commandes suivantes :
 ```
 python manage.py makemigrations
 python manage.py migrate
