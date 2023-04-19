@@ -1,7 +1,12 @@
 <nav class="menu">
   <ul>
-    <li><a href="{% url 'index' %}" class="menu-item">Emploi du temps</a></li>
-    <li><a href="{% url 'add_tache' %}" class="menu-item">Ajouter un évènement</a></li>
+    <li><a href="{% url 'index' %}" class="menu-item">Emploi du temps</a></li>    
+    <li class="deroulant"><a href="">Ajouter un évènement &ensp;</a>
+      <ul class="sous">
+        <li><a href="{% url 'add_tache' %}" class="menu-item">Par formulaire</a></li>
+        <li><a href="{% url 'add_Excell_taches' %}" class="menu-item">Par Fichier Excell</a></li>
+      </ul>
+    </li>
     <li class="deroulant"><a href="">Absences &ensp;</a>
       <ul class="sous">
         <li><a href="{% url 'absences' %}" class="menu-item">Les Absences</a></li>

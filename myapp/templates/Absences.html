@@ -29,22 +29,146 @@
 </head>
 <body>
     {% include 'menu.html' %}
+
     <div class="container_absences">
         <div class="h3_absences">
             <h3>Vous trouverez ici toutes les prochaines absences.</h3>
         </div> 
     </div>
-    <div class="container_absences">
-        <div class="df_absences">
-            <p>En cliquant sur une ligne, vous pouvez modifier les informations concernant l'absence sélectionnée.</p>
-            {{absences|safe}}
+    {% if messages.sucess %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="container_absences">
+            <div class="df_absences">
+                <p>En cliquant sur une ligne, vous pouvez modifier les informations concernant l'absence sélectionnée.</p>
+                {{absencesFiltrees|safe}}
+            </div>
         </div>
+    {% endif %}
+
+    <br><br><br><br>
+
+    <div class="container_absences">
+        <div class="h3_absences">
+            <h3>Vous trouverez ici toutes les absences antérieures à aujourd'hui.</h3>
+        </div> 
     </div>
+    {% if messages.error %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="container_absences">
+            <div class="df_absences">
+                <p>En cliquant sur une ligne, vous pouvez modifier les informations concernant l'absence sélectionnée.</p>
+                {{absencesSansFiltre|safe}}
+            </div>
+        </div>
+    {% endif %}
+
+    
     <script defer>
         const PAS_DE_TECHNICIEN = 0;
         const UN_TECHNICIEN = 1;
         document.addEventListener("DOMContentLoaded", function() {
             const dataframe = document.getElementById('tab');
+            dataframe.addEventListener('click', (event) => {
+                const id_abs = event.target.parentNode.id;
+                $.ajax({
+                    type: "GET",
+                    url: '/getAbsenceById/'+ id_abs +'/',
+                    dataType: 'json',
+                    success: function (data) {
+                        const dateDebut = new Date(data.absence[2]).toISOString().slice(0,10);
+                        const dateFin = new Date(data.absence[3]).toISOString().slice(0,10);
+                        $('#motif').val(data.absence[1]);
+                        $('#start').val(dateDebut);
+                        $('#end').val(dateFin);
+                        $('#modifModal').modal('show');
+
+                        // Récupère les techniciens associés à l'absence
+                        $.ajax({
+                            url: '/get_techniciens_abs/'+ id_abs +'/',
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                var techniciens = data.techniciens;
+                                tech1 = false
+                                tech2 = false
+                                techniciens.forEach(technicien => {
+                                    if(technicien.nom == "Auriol" || tech1) {
+                                        $('#tech1').prop('checked', true);
+                                        tech1 = true
+                                    } else {
+                                        $('#tech1').prop('checked', false);
+                                    }
+                                    if(technicien.nom == "Galve" || tech2) {
+                                        $('#tech2').prop('checked', true);
+                                        tech2 = true;
+                                    } else {
+                                        $('#tech2').prop('checked', false);
+                                    }
+                                });                      
+                            },
+                            error: function(data) {
+                                console.log('Erreur lors de la récupération des techniciens');
+                            }
+                        });
+
+                        //Gestion bouton valider du modal modification
+                        $('#validerModif').off('click');
+                        $('#validerModif').click(function() {
+                            $.ajax({
+                                type: 'POST',
+                                url: '/modifier_absence/'+ id_abs +'/',
+                                data: $('#form_modif').serialize(),
+                                success: function(response) {
+                                    $('#modifModal').modal('hide');
+                                    location.reload();
+                                    console.log('Modification effectuées');
+                                },
+                                error: function(error) {
+                                    alert('Erreur lors la modification des données : ' + error)
+                                    console.log('Erreur lors la modification des données : ' + error);
+                                }
+                            });
+                        });
+
+                        // Bouton supprimer
+                        $('#deleteEventButton').off('click');
+                        $('#deleteEventButton').click(function() {
+                            $.ajax({
+                                type: "GET",
+                                url: '/removeAbsence/'+ id_abs +'/',
+                                dataType: "json",
+                                success: function (data) {
+                                    $('#modifModal').modal('hide');
+                                    location.reload();
+                                    console.log('Modification effectuées');
+                                },
+                                error: function (data) {
+                                    alert('Suppression impossible. Erreur système');
+                                    console.log('Suppression impossible. Erreur système');
+                                }                            
+                            });
+                            $('#eventModal').modal('hide');
+                        });
+                    },
+                    error: function (data) {
+                        alert("Erreur; Veuillez cliquer sur une absence.")
+                    }
+                });
+            });
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const dataframe = document.getElementById('tab2');
             dataframe.addEventListener('click', (event) => {
                 const id_abs = event.target.parentNode.id;
                 $.ajax({

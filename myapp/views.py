@@ -1,12 +1,14 @@
 from datetime import datetime, timedelta
 from datetime import datetime
+import math
+import os
+from django.conf import settings
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import JsonResponse
 from myapp.forms import * 
 from myapp.models import Tache, Absence
 import pandas as pd
 from django.views.decorators.csrf import csrf_exempt
-from django.core import serializers
 
 #redirige vers l'emploi du temps (index.html)
 def index(request):
@@ -57,7 +59,6 @@ def all_absences(request):
             backgroundColor = "#808080"
         else :
             backgroundColor = "#805858"
-
 
         end = absence.end
         end += timedelta(days=1)
@@ -198,7 +199,7 @@ def save_tache(request):
 def absences(request):
     absences = Absence.objects.filter(end__gte=datetime.today()).order_by('start')
     if not absences:
-        return render(request, 'Absences.html', {'absences': "Aucune absence n'est programmée"})
+        messages.success(request, 'Aucune absence à venir.')
     tab = '<table border="1" class="dataframe" id="tab"> <thead> <tr style="text-align: right;"></th><th></th><th>Motif d\'absence</th> <th>date de début</th> <th>date de fin</th> </tr> </thead> <tbody>'
     i=0
     for absence in absences:
@@ -207,7 +208,20 @@ def absences(request):
         tab += '<tr id="' + str(absence.id_abs) +'"><th>' + str(i) +'</th><td>' + str(absence.motif) +'</td><td>' + str(start) +'</td><td>' + str(end) +'</td></tr>'
         i += 1
     tab += '</tbody></table>'
-    return render(request, 'Absences.html', {'absences': tab})
+
+    absences2 = Absence.objects.filter(end__lt=datetime.today()).order_by('start')
+    if not absences2:
+        messages.error(request, 'Aucune absence programmé.')
+    tab2 = '<table border="1" class="dataframe" id="tab2"> <thead> <tr style="text-align: right;"></th><th></th><th>Motif d\'absence</th> <th>date de début</th> <th>date de fin</th> </tr> </thead> <tbody>'
+    i=0
+    for absence in absences2:
+        start = absence.start.strftime('%d/%m/%Y')
+        end = absence.end.strftime('%d/%m/%Y')
+        tab2 += '<tr id="' + str(absence.id_abs) +'"><th>' + str(i) +'</th><td>' + str(absence.motif) +'</td><td>' + str(start) +'</td><td>' + str(end) +'</td></tr>'
+        i += 1
+    tab2 += '</tbody></table>'
+
+    return render(request, 'Absences.html', {'absencesFiltrees': tab, 'absencesSansFiltre': tab2})
 
 def getAbsenceById(request, id_abs):
     absence = get_object_or_404(Absence, id_abs=id_abs)
@@ -237,3 +251,157 @@ def removeAbsence(request, id_abs):
     absence.delete()
     data = {}
     return JsonResponse(data)
+
+from django.contrib import messages
+
+def add_Excell_taches(request):
+    if request.method != 'POST':
+        messages.error(request, None)
+        return render(request, 'AjoutParExcell.html')
+
+    # Récupération du fichier Excell
+    file = request.FILES.get('xlsx_file')
+    if not file:
+        messages.error(request, 'Erreur : fichier manquant.')
+        return render(request, 'AjoutParExcell.html')
+    
+    # Vérification de l'extension du fichier
+    if not file.name.endswith('.XLSX') :
+        if not file.name.endswith('.xlsx'):
+            messages.error(request, 'Erreur : le fichier doit être un document Excel avec l\'extension .xlsx.')
+            return render(request, 'AjoutParExcell.html')
+        
+    # Écriture du fichier sur le disque
+    try:
+        filepath = os.path.join(settings.EXCELL_DIR, file.name)
+        with open(filepath, 'wb+') as destination:
+            for chunk in file.chunks():
+                destination.write(chunk)
+    except Exception as e:
+        messages.error(request, f'Erreur lors de l\'écriture du fichier : {e}.')
+        return render(request, 'AjoutParExcell.html')
+
+    # Récupération des données du fichier Excell.
+    try:
+        dfFic = pd.read_excel(os.path.join(settings.EXCELL_DIR, file.name))
+    except FileNotFoundError:
+        messages.error(request, 'Erreur : le fichier est manquant : {e}.')
+        return render(request, 'AjoutParExcell.html')
+    except ValueError:
+        messages.error(request, 'Erreur : la feuille demandée n\'existe pas : {e}.')
+        return render(request, 'AjoutParExcell.html')
+    
+    #Il me manque la date de début, le pn, le lieu, le type, le statut
+    dfFic = dfFic[['Order', 'Requested deliv.date', 'Notification', 'Serial Number', 'Material', 'Service Material', 'System Status', 'Name 1', 'Description', 'Tech. Evaluation']]
+    dfFic = dfFic.rename(columns={'Service Material': 'lieu','Material': 'pn','Order':'id_tache', 'Requested deliv.date': 'end', 'System Status': 'type','Serial Number': 'sn', 'Name 1': 'nom_client', 'Notification': 'num_certif', 'Tech. Evaluation' : 'Technicien', 'Description': 'commentaire'})
+
+    # il manque le type (je ne connais pas l'abréviation)
+    # order id unique
+
+    # On garde seulent les tache ayant un id(order)
+    dfFic = dfFic.dropna(subset=['id_tache'])
+    
+    #Création des dates de départ. J'estime qu'une tache dure 7jours. Donc La date de livraison - 7 jours donne la date de début de la tache
+    for index, dateF in dfFic['end'].items():
+        if isinstance(dateF, pd.Timestamp):
+            dateF_datetime = dateF.to_pydatetime()
+            dateD = dateF_datetime - timedelta(days=7)
+            dfFic.loc[index, 'start'] = dateD
+            dfFic.loc[index, 'end'] = dateF_datetime.replace(hour=12, minute=0, second=0)
+        else: 
+            messages.error(request, 'Erreur : Les dates de fin (Requested deliv.date) doivent être au format date (JJ/MM/AAAA). (pour les devs) Si le problème persiste vérifier que les données sont au format pandas.Timestamp dans python: {e}.')
+
+    # Récupération du lieu du déroulement de l'opération
+    for index, lieu in dfFic['lieu'].items():
+        if(lieu[-6:] == 'ONSITE') :
+            dfFic.loc[index, 'lieu'] = 'on site'
+        else:
+            dfFic.loc[index, 'lieu'] = 'in house'
+
+    # Création du statut de la tache à 'à faire' pour chaque tache.
+    dfFic = dfFic.assign(statut='à faire')
+    # Assignation des techniciens
+    for index, technicien in dfFic['Technicien'].items():
+        technicien = str(technicien)
+        nom_tech = technicien[1:]
+        nom_tech = nom_tech.upper()
+        if(nom_tech == "GALVE") :
+            nom_tech = "Galve"
+            prenom_tech = "Franck"
+        elif(nom_tech == "AURIOL"):
+            nom_tech = "Auriol"
+            prenom_tech = "Clément"
+        elif nom_tech=="AN":
+            nom_tech = ""
+            prenom_tech = ""
+        else :
+            nom_tech = "non définis"
+            prenom_tech = "non définis"
+        dfFic.loc[index, 'nom'] = nom_tech
+        dfFic.loc[index, 'prenom'] = prenom_tech
+    dfFic.drop('Technicien', axis=1, inplace=True)
+
+    # Supprime les valeur NaN dans les colonnes obligatoires par non renseigné (SN, PN, Nom_client) et pour commentaire met une valeur null
+    dfFic['sn'].fillna('non renseigné', inplace=True)
+    dfFic['pn'].fillna('non renseigné', inplace=True)
+    dfFic['nom_client'].fillna('non renseigné', inplace=True)
+    dfFic['commentaire'].fillna("", inplace=True)
+
+    # La colonne id est castée en int. Elle passe de float à integer
+    dfFic['id_tache'] = dfFic['id_tache'].astype(int)
+
+    # Défnition du titre de la tache
+    for index, colonnes in dfFic[["commentaire", "id_tache", "nom_client"]].iterrows():
+        if len(colonnes["commentaire"])>0:
+            dfFic.loc[index, 'titre'] = colonnes["commentaire"]
+        elif (len(colonnes["nom_client"]) != 'non renseigné' and ( len(str(colonnes["id_tache"]) + " " + colonnes["nom_client"]) < 51)): 
+            dfFic.loc[index, 'titre'] = str(colonnes["id_tache"]) + " " + colonnes["nom_client"]
+        else:
+            dfFic.loc[index, 'titre'] = str(colonnes["id_tache"])
+    
+# 
+# ATTENTION CETTE ETAPE EST TEMPORAIRE, JE NE PEUX PAS CONNAITRE LE TYPE DE LA TACHE (pour l'instant)
+# 
+
+    # Assignation du type
+    for index, types in dfFic["type"].items():
+        mesTypes = types.split(" ")
+        # L'abréviation me permettant de définir si la tache est VGP¨ou Reper
+        VGP = "PRC"
+        Reper = "CNF"
+        if Reper in mesTypes:
+            dfFic.loc[index, 'type'] = "Reper"
+        elif VGP in mesTypes:
+            dfFic.loc[index, 'type'] = "VGP"
+        else:
+            dfFic.loc[index, 'type'] = "NUll"
+
+    # Le commentaire est entièrement défnis à vide
+    dfFic = dfFic.assign(commentaire="")
+    
+    dfFic = dfFic.dropna(subset=['id_tache'])
+    dfFic = dfFic[['id_tache', 'titre','start', 'end', 'num_certif', 'sn', 'pn', 'lieu', 'type','statut', 'nom_client', 'commentaire', 'nom', 'prenom']]
+    dfFic = dfFic.reset_index(drop=True)
+
+    # Mise à jour de la base de données avec le dataframe
+    for index, colonnes in dfFic.iterrows():
+        # création d'un dictionnaire contenant les champs à mettre à jour ou à créer
+        data = {
+            'id_tache': colonnes['id_tache'],
+            'titre': colonnes['titre'],
+            'start': colonnes['start'],
+            'end': colonnes['end'],
+            'num_certif': colonnes['num_certif'],
+            'sn': colonnes['sn'],
+            'pn': colonnes['pn'],
+            'lieu': colonnes['lieu'],
+            'type': colonnes['type'],
+            'statut': colonnes['statut'],
+            'nom_client': colonnes['nom_client'],
+            'commentaire': colonnes['commentaire'],
+        }
+        # mise à jour ou création de l'enregistrement correspondant dans la base de données
+        obj, created = Tache.objects.update_or_create(id_tache=colonnes['id_tache'], defaults=data)
+
+    messages.success(request, 'Le fichier Excel a été importé avec succès!')
+    return render(request, 'AjoutParExcell.html', {'dfExcell': dfFic.to_html})

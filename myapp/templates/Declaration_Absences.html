@@ -20,7 +20,7 @@
       <label for="end">Date de fin :</label>
       <input type="date" id="end" name="end" required><br>
 
-      <label>Techniciens :</label>
+      <label>*Techniciens :</label>
       {% for technicien in form.fields.techniciens.queryset %}
         <label>
           <input type="checkbox" name="techniciens" value="{{ technicien.pk }}" {% if technicien in form.instance.techniciens.all %}checked{% endif %}>

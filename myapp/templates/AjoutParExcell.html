@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Ajouter un Evènement</title>
+        {% load static %}
+        <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}">
+        <style type="text/css">
+            table {
+                border-collapse: collapse;
+                width: auto;
+                margin: auto;
+            }
+            th, td {
+                text-align: left;
+                padding: 8px;
+            }
+            th {
+                background-color: #4CAF50;
+                color: #F5F3F3;
+            }
+            tr:nth-child(even) {
+                background-color: rgb(242, 242, 242);
+            }
+        </style>
+    </head>
+    <body>
+        {% include 'menu.html' %}
+        <h3>Importer un fichier XLSX</h3>
+        <div class="p_Excell_Ajout">
+            <p>Vous permet d'ajouter les données d'un fichier Excell à votre emploi du temps.</p>
+            <p>Attention, votre fichier Excell doit être celui généré par SAP.</p>
+        </div>
+        
+        <form method="POST" action="{% url 'add_Excell_taches' %}" enctype="multipart/form-data" name="import" class="form_ajout">
+            {% csrf_token %}
+            <label for="xlsx_file">Sélectionnez votre fichier Excel :</label>
+            <input type="file" name="xlsx_file" accept=".xlsx">
+            <br><br>
+            <input type="submit" name="import" value="Importer">
+        </form>
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </body>
+</html>

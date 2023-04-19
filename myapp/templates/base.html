@@ -23,6 +23,7 @@
         $(document).ready(function () {
             var calendar = $('#calendar').fullCalendar({
                 editable: true,
+                eventLimit: 5,
                 eventResizableFromStart: true,
                 header: {
                     left: 'prev,next today',
@@ -280,7 +281,7 @@
                         <p><strong>Titre :</strong> <span id="titre"></span></p>
                         <p><strong>Début :</strong> <span id="start"></span></p>
                         <p><strong>Fin :</strong> <span id="end"></span></p>
-                        <p><strong>Numéro certificat :</strong> <span id="num_certif"></span></p>
+                        <p><strong>Service notification :</strong> <span id="num_certif"></span></p>
                         <p><strong>Serial number :</strong> <span id="sn"></span></p>
                         <p><strong>PN :</strong> <span id="pn"></span></p>
                         <p><strong>Lieu :</strong> <span id="lieu"></span></p>
@@ -325,7 +326,7 @@
                                 <input type="date" id="end_modif" name="end">
                             </div>
                             <div class="form_item_modal_input">
-                                <label for="num_certif_modif">Numéro de certificat :</label>
+                                <label for="num_certif_modif">Service notification :</label>
                                 <input type="number" id="num_certif_modif" name="num_certif" step="any" min="0" max="999999999">
                             </div>
                             <div class="form_item_modal_input">

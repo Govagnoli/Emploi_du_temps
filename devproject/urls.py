@@ -20,4 +20,5 @@ urlpatterns = [
     path('getAbsenceById/<int:id_abs>/', views.getAbsenceById, name='getAbsenceById'),
     path('modifier_absence/<int:id_abs>/', views.modifier_absence, name='modifier_modifier_absencetache'),
     path('removeAbsence/<int:id_abs>/', views.removeAbsence, name='removeAbsence'),
+    path('add_Excell_taches/', views.add_Excell_taches, name='add_Excell_taches'),    
 ]

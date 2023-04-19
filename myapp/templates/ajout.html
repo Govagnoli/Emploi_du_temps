@@ -41,7 +41,7 @@
             <option value="Reper">Reper</option>
         </select><br>
 
-        <label for="statut">type d'opération :</label>
+        <label for="statut">Statut :</label>
         <select id="statut" name="statut" required>
             <option value="à faire" selected>à faire</option>
             <option value="en cours">en cours</option>
@@ -54,7 +54,7 @@
         <label for="commentaire">*Commentaire :</label>
         <input type="text" id="commentaire" name="commentaire" maxlength="300" ><br>
 
-        <label>Techniciens:</label>
+        <label>*Techniciens:</label>
         {% for technicien in form.fields.techniciens.queryset %}
             <label>
                 <input type="checkbox" name="techniciens" value="{{ technicien.pk }}" {% if technicien in form.instance.techniciens.all %}checked{% endif %}>
