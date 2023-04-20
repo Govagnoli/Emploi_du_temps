@@ -35,7 +35,7 @@ def all_taches(request):
             'end': tache.end.replace(hour=12, minute=0, second=0, microsecond=0),
             'title': tache.titre,                                                                           
             'num_certif': tache.num_certif,
-            'sn': tache.sn,
+            'sn': tache.sn,\
             'pn' : tache.pn,
             'lieu' : tache.lieu,
             'type' : tache.type,
@@ -261,14 +261,15 @@ def add_Excell_taches(request):
     # Récupération du fichier Excell
     file = request.FILES.get('xlsx_file')
     if not file:
-        messages.error(request, 'Erreur : fichier manquant.')
-        return render(request, 'AjoutParExcell.html')
+        messages.error(request, 'Erreur : fichier manquant.', extra_tags='erreur_Excell')
+        #messages.error(request, 'Erreur : fichier manquant.')
+        return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
     
     # Vérification de l'extension du fichier
     if not file.name.endswith('.XLSX') :
         if not file.name.endswith('.xlsx'):
             messages.error(request, 'Erreur : le fichier doit être un document Excel avec l\'extension .xlsx.')
-            return render(request, 'AjoutParExcell.html')
+            return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
         
     # Écriture du fichier sur le disque
     try:
@@ -278,17 +279,17 @@ def add_Excell_taches(request):
                 destination.write(chunk)
     except Exception as e:
         messages.error(request, f'Erreur lors de l\'écriture du fichier : {e}.')
-        return render(request, 'AjoutParExcell.html')
+        return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
 
     # Récupération des données du fichier Excell.
     try:
         dfFic = pd.read_excel(os.path.join(settings.EXCELL_DIR, file.name))
     except FileNotFoundError:
         messages.error(request, 'Erreur : le fichier est manquant : {e}.')
-        return render(request, 'AjoutParExcell.html')
+        return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
     except ValueError:
         messages.error(request, 'Erreur : la feuille demandée n\'existe pas : {e}.')
-        return render(request, 'AjoutParExcell.html')
+        return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
     
     #Il me manque la date de début, le pn, le lieu, le type, le statut
     dfFic = dfFic[['Order', 'Requested deliv.date', 'Notification', 'Serial Number', 'Material', 'Service Material', 'System Status', 'Name 1', 'Description', 'Tech. Evaluation']]
@@ -309,7 +310,7 @@ def add_Excell_taches(request):
             dfFic.loc[index, 'end'] = dateF_datetime.replace(hour=12, minute=0, second=0)
         else: 
             messages.error(request, 'Erreur : Les dates de fin (Requested deliv.date) doivent être au format date (JJ/MM/AAAA). (pour les devs) Si le problème persiste vérifier que les données sont au format pandas.Timestamp dans python: {e}.')
-
+            return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
     # Récupération du lieu du déroulement de l'opération
     for index, lieu in dfFic['lieu'].items():
         if(lieu[-6:] == 'ONSITE') :

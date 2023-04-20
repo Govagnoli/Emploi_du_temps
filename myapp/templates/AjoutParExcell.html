@@ -1,3 +1,4 @@
+{% load custom_filters %}
 <!DOCTYPE html>
 <html>
     <head>
@@ -38,12 +39,10 @@
             <br><br>
             <input type="submit" name="import" value="Importer">
         </form>
-        {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
+        <div style="margin-left: 20px;">
+            {% for message in messages|messageErreursExcell:"erreur_Excell" %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </div>
     </body>
 </html>
