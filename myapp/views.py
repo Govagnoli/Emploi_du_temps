@@ -8,6 +8,7 @@ from myapp.forms import *
 from myapp.models import Tache, Absence
 import pandas as pd
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib import messages
 
 #redirige vers l'emploi du temps (index.html)
 def index(request):
@@ -48,6 +49,7 @@ def all_taches(request):
         })
     return JsonResponse(out, safe=False)
 
+# Récupère les absences dans la base de données et les renvoie dans le calendrier du template index.html
 def all_absences(request):
     all_absences = Absence.objects.filter(start__range=[request.GET.get("start", None), request.GET.get("end", None)])                                                                                
     out = []  
@@ -102,6 +104,7 @@ def add_tache(request):
         form = tachesForm()
     return render(request, 'ajout.html', {'form': form})
 
+# Permet d'ajouter une absence dans la base de données via le formulaire de déclaration des absences
 def add_absence(request):
     if request.method == "POST":
         form = AbsenceForm(request.POST)
@@ -111,7 +114,7 @@ def add_absence(request):
             techniciens = form.cleaned_data['techniciens']
             abs.save()
             abs.techniciens.set(techniciens)
-            return redirect('absences') # Redirige vers la page d'accueil après ajout réussi
+            return redirect('absences') # Redirige vers la page d'absences après ajout réussi
     else:
         form = tachesForm()
     return render(request, 'Declaration_Absences.html', {'form': form})
@@ -130,7 +133,7 @@ def modifier_tache(request, notification):
         return redirect('index') # Redirige vers la page d'accueil après modification réussi
     return HttpResponseBadRequest("le formulaire est invalide.")
 
-#Permet de modifier la date d'une tache lors de son déplacement via l'interface du calendrier
+# Permet de modifier la date d'une tache lors de son déplacement via l'interface du calendrier
 def update(request, notification):
     tache = get_object_or_404(Tache, notification=notification)
     if request.method == 'POST':
@@ -145,7 +148,8 @@ def update(request, notification):
         return JsonResponse(data)
     else:
         return JsonResponse({'error': 'Invalid request type'})
- 
+    
+# Supprime une tache (identifié par sa notification) et enlève par la suite la référence de travail entre les techniciens et cette tâches
 def remove(request, notification):
     tache = get_object_or_404(Tache, notification=notification)
     tache.techniciens.clear()
@@ -153,8 +157,8 @@ def remove(request, notification):
     data = {}
     return JsonResponse(data)
 
+# Récupère les techniciens associés à une tache identifié par sa notification
 def get_techniciens(request, notification):
-    print("test")
     techniciens_list = []
     if int(notification) <0:
         return JsonResponse({'techniciens': techniciens_list})
@@ -164,6 +168,7 @@ def get_techniciens(request, notification):
         techniciens_list.append({'prenom': technicien.prenom, 'nom': technicien.nom})
     return JsonResponse({'techniciens': techniciens_list})
 
+# Récupère les techniciens associés à une absence identifié par l'id absence
 def get_techniciens_abs(request, id_abs):
     absence = get_object_or_404(Absence, id_abs=id_abs)
     techniciens = absence.techniciens.all()
@@ -172,6 +177,7 @@ def get_techniciens_abs(request, id_abs):
         techniciens_list.append({'prenom': technicien.prenom, 'nom': technicien.nom})
     return JsonResponse({'techniciens': techniciens_list})
 
+# Renvoie un dataframe (un tableau) de Pandas contenant toutes les VGP des deux prochains mois. Si aucune VGP alors affichage du message "Vous n'avez pas de prochaines taches VGP."
 def alerteVGP(request):
     dfTaches = pd.DataFrame()
     date_limite = datetime.now() + timedelta(days=60)
@@ -192,6 +198,7 @@ def alerteVGP(request):
         return render(request, 'Alerte.html', {'taches': dfTaches.to_html()})
     return render(request, 'Alerte.html', {'taches': "Vous n'avez pas de prochaines taches VGP."})
 
+# Permet la création ou la modification d'une tâche reprogrammé lorsqu'une tâche de type VGP sur site est défini comme fini. 
 @csrf_exempt
 def save_tache(request):
     if request.method == 'POST':
@@ -218,9 +225,9 @@ def save_tache(request):
         )
         return JsonResponse({'success': True})
     else:
-        print("test2")
         return JsonResponse({'success': False})
-    
+
+# Permet de récupérer les absences antérieurs et ultérieurs à aujourd'hui et les séparés dans deux dataframes (tableaux) différents avant de les envoyer sur la pages Absences.html
 def absences(request):
     absences = Absence.objects.filter(end__gte=datetime.today()).order_by('start')
     if not absences:
@@ -248,6 +255,7 @@ def absences(request):
 
     return render(request, 'Absences.html', {'absencesFiltrees': tab, 'absencesSansFiltre': tab2})
 
+# Permet de récupérer une absence en fonction de son identifiant et renvoie chaque information de l'absence sous forme de tableau python.
 def getAbsenceById(request, id_abs):
     absence = get_object_or_404(Absence, id_abs=id_abs)
     listAbsence = []
@@ -257,6 +265,7 @@ def getAbsenceById(request, id_abs):
     listAbsence.append(absence.end)
     return JsonResponse({'absence': listAbsence})
 
+# Permet de modifier une absence en fonction de son identifiant
 def modifier_absence(request, id_abs):
     instance = get_object_or_404(Absence, id_abs=id_abs)
     form = AbsenceForm(request.POST, instance=instance)
@@ -270,6 +279,7 @@ def modifier_absence(request, id_abs):
     context = {'form': form}
     return render(request, 'Absences.html', context)
 
+# Permet de supprimer une absence en fonction de son identifiant.
 def removeAbsence(request, id_abs):
     absence = get_object_or_404(Absence, id_abs=id_abs)
     absence.techniciens.clear()
@@ -277,13 +287,12 @@ def removeAbsence(request, id_abs):
     data = {}
     return JsonResponse(data)
 
-from django.contrib import messages
-
+# Permet d'enregistrer des tâches à partir du fichier Excel généré par SAP. Plusieurs type d'erreurs sont pris en compte si l'opération se déroule mal.
 def add_Excell_taches(request):
     if request.method != 'POST':
         messages.error(request, None)
         return render(request, 'AjoutParExcell.html')
-
+    
     # Récupération du fichier Excell
     file = request.FILES.get('xlsx_file')
     if not file:
@@ -306,7 +315,7 @@ def add_Excell_taches(request):
     except Exception as e:
         messages.error(request, f'Erreur lors de l\'écriture du fichier : {e}.')
         return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
-
+    
     # Récupération des données du fichier Excell.
     try:
         dfFic = pd.read_excel(os.path.join(settings.EXCELL_DIR, file.name))
@@ -317,15 +326,12 @@ def add_Excell_taches(request):
         messages.error(request, 'Erreur : la feuille demandée n\'existe pas : {e}.')
         return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
     
-    #Il me manque la date de début, le pn, le lieu, le type, le statut
-    dfFic = dfFic[['Requested deliv.date', 'Notification', 'Serial Number', 'Material', 'Service Material', 'System Status', 'Name 1', 'Description', 'Tech. Evaluation']]
+    # Je récupère et renomme les colonnes dont j'ai besoin.
+    dfFic = dfFic[['Order', 'Requested deliv.date', 'Notification', 'Serial Number', 'Material', 'Service Material', 'System Status', 'Name 1', 'Description', 'Tech. Evaluation']]
     dfFic = dfFic.rename(columns={'Service Material': 'lieu','Material': 'pn','Requested deliv.date': 'end', 'System Status': 'type','Serial Number': 'sn', 'Name 1': 'nom_client', 'Notification': 'notification', 'Tech. Evaluation' : 'Technicien', 'Description': 'commentaire'})
-
-    # il manque le type (je ne connais pas l'abréviation)
-    # order id unique
-
-    # On garde seulent les tache ayant un id(order)
-    dfFic = dfFic.dropna(subset=['notification'])
+    
+    # On garde seulement les taches ayant une order (qui est commandé par le client)
+    dfFic = dfFic.dropna(subset=['Order'])
     
     #Création des dates de départ. J'estime qu'une tache dure 7jours. Donc La date de livraison - 7 jours donne la date de début de la tache
     for index, dateF in dfFic['end'].items():
@@ -337,13 +343,14 @@ def add_Excell_taches(request):
         else: 
             messages.error(request, 'Erreur : Les dates de fin (Requested deliv.date) doivent être au format date (JJ/MM/AAAA). (pour les devs) Si le problème persiste vérifier que les données sont au format pandas.Timestamp dans python: {e}.')
             return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
+
     # Récupération du lieu du déroulement de l'opération
     for index, lieu in dfFic['lieu'].items():
         if(lieu[-6:] == 'ONSITE') :
             dfFic.loc[index, 'lieu'] = 'on site'
         else:
             dfFic.loc[index, 'lieu'] = 'in house'
-
+    
     # Création du statut de la tache à 'à faire' pour chaque tache.
     dfFic = dfFic.assign(statut='à faire')
     # Assignation des techniciens
@@ -373,10 +380,10 @@ def add_Excell_taches(request):
     dfFic['nom_client'].fillna('non renseigné', inplace=True)
     dfFic['commentaire'].fillna("", inplace=True)
 
-    # La colonne id est castée en int. Elle passe de float à integer
+    # La colonne notification est castée en int. Elle passe de float à integer
     dfFic['notification'] = dfFic['notification'].astype(int)
 
-    # Défnition du titre de la tache
+    # Définition du titre de la tache
     for index, colonnes in dfFic[["commentaire", "notification", "nom_client"]].iterrows():
         if len(colonnes["commentaire"])>0:
             dfFic.loc[index, 'titre'] = colonnes["commentaire"]
@@ -402,13 +409,14 @@ def add_Excell_taches(request):
         else:
             dfFic.loc[index, 'type'] = "NUll"
 
-    # Le commentaire est entièrement défnis à vide
+    # Le commentaire est entièrement définis à vide
     dfFic = dfFic.assign(commentaire="")
     
+    # On supprime les lignes ayant une notification null
     dfFic = dfFic.dropna(subset=['notification'])
     dfFic = dfFic[['notification', 'titre','start', 'end', 'sn', 'pn', 'lieu', 'type','statut', 'nom_client', 'commentaire', 'nom', 'prenom']]
     dfFic = dfFic.reset_index(drop=True)
-
+    
     # Mise à jour de la base de données avec le dataframe
     for index, colonnes in dfFic.iterrows():
         # création d'un dictionnaire contenant les champs à mettre à jour ou à créer
