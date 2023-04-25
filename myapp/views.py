@@ -106,8 +106,6 @@ def add_absence(request):
     if request.method == "POST":
         form = AbsenceForm(request.POST)
         if form.is_valid():
-            if(type(form.cleaned_data['motif'])==None):
-                form.cleaned_data['motif'] = "Motif non soumis"
             form.cleaned_data['end'] = form.cleaned_data['end'].replace(hour=12, minute=0, second=0, microsecond=0)
             abs = form.save(commit=False)
             techniciens = form.cleaned_data['techniciens']
