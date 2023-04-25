@@ -23,7 +23,10 @@
         $(document).ready(function () {
             var calendar = $('#calendar').fullCalendar({
                 editable: true,
-                eventLimit: 5,
+                height: 'auto',
+                contentHeight : 300,
+                // with: '3000px',
+                //eventLimit: 5, //Pour limiter l'affichage (à 5 dans ce cas) des tâches sur une journée 
                 eventResizableFromStart: true,
                 header: {
                     left: 'prev,next today',
@@ -37,7 +40,9 @@
                 ],
                 eventRender: function(event, element) {
                     element.css('font-weight', 'bold');
-                    
+                    if(event.type != 'absence') {
+                        element.addClass('borderTaches');
+                    }
                     if(event.type == 'absence') {
                         id_abs = event.id_abs;
                         var techniciensText = '';
@@ -65,7 +70,7 @@
                                 element.append('<div class="fc-content"><span class="fc-title">' + event.titre+'<br>'+ "techniciens : " + techniciensText + '</span></div>');
                                 element.find('.fc-title').css({
                                         'position': 'relative',
-                                        'z-index': '9999',
+                                        'z-index': '99999',
                                         'color': '#F5F3F3',
                                         'align-items': 'center',
                                         'display': 'flex',
@@ -168,7 +173,7 @@
                         error: function(data) {
                             calendar.fullCalendar('refetchEvents');
                             console.log('Erreur lors de la récupération des techniciens');
-                        }
+                        }                   
                     });
                     $('#eventModal').modal('show');
                     // Modification d'une tâche
@@ -192,49 +197,54 @@
 
                         //Gestion bouton valider du modal modification
                         $('#validerModif').off('click');
-                        $('#validerModif').click(function() {
-                            $.ajax({
-                                type: 'POST',
-                                url: '/modifier_tache/'+ id_tache +'/',
-                                data: $('#form_modif').serialize(),
-                                success: function(response) {
-                                    calendar.fullCalendar('refetchEvents');
-                                    $('#modifModal').modal('hide');
-                                    console.log('Modification effectuées');
+                        $('#validerModif').click(function() {                            
+                            if(verifierFormulaire(document.getElementById('form_modif'))) {
+                                $.ajax({
+                                    type: 'POST',
+                                    url: '/modifier_tache/'+ id_tache +'/',
+                                    data: $('#form_modif').serialize(),
+                                    success: function(response) {
+                                        calendar.fullCalendar('refetchEvents');
+                                        $('#modifModal').modal('hide');
+                                        console.log('Modification de la Tache effectuées');
 
-                                    //Reprogrammation à l'année prochaine d'une tache de type VGP on site terminé.
-                                    if ($('#type_modif').val() == 'VGP' && $('#statut_modif').val() == 'fini' && $('#lieu_modif').val() == 'on site') {
-                                        var data = $('#form_modif').serialize();
-                                        var start = new Date($('#start_modif').val());
-                                        var end = new Date($('#end_modif').val());                                 
-                                        start.setFullYear(start.getFullYear() + 1);
-                                        end.setFullYear(end.getFullYear() + 1);
-                                        data = data.replace(/start=[^&]*/, 'start=' + start.toISOString().slice(0,10));
-                                        data = data.replace(/end=[^&]*/, 'end=' + end.toISOString().slice(0,10));
-                                        $.ajax({
-                                            type: 'POST',
-                                            url: '/save_tache/',
-                                            data: data,
-                                            dataType: 'json',
-                                            success: function(response) {
-                                                calendar.fullCalendar('refetchEvents');
-                                                $('#modifModal').modal('hide');
-                                                console.log('Modification effectuées');
-                                            },
-                                            error: function(error) {
-                                                calendar.fullCalendar('refetchEvents');
-                                                alert('Erreur lors la modification des données : ' + error)
-                                                console.log('Erreur lors la modification des données : ' + error);
-                                            }
-                                        });
+                                        //Reprogrammation à l'année prochaine d'une tache de type VGP on site terminé.
+                                        if ($('#type_modif').val() == 'VGP' && $('#statut_modif').val() == 'fini' && $('#lieu_modif').val() == 'on site') {
+                                            var data = $('#form_modif').serialize();
+                                            var start = new Date($('#start_modif').val());
+                                            var end = new Date($('#end_modif').val());                                 
+                                            start.setFullYear(start.getFullYear() + 1);
+                                            end.setFullYear(end.getFullYear() + 1);
+                                            data = data.replace(/start=[^&]*/, 'start=' + start.toISOString().slice(0,10));
+                                            data = data.replace(/end=[^&]*/, 'end=' + end.toISOString().slice(0,10));
+                                            $.ajax({
+                                                type: 'POST',
+                                                url: '/save_tache/',
+                                                data: data,
+                                                dataType: 'json',
+                                                success: function(response) {
+                                                    calendar.fullCalendar('refetchEvents');
+                                                    $('#modifModal').modal('hide');
+                                                    console.log('Reprogrammation de la tache VGP on site réussi.');
+                                                },
+                                                error: function(error) {
+                                                    calendar.fullCalendar('refetchEvents');
+                                                    alert('Erreur lors de la reprogrammation de la tache VGP : ' + error)
+                                                    console.log('Erreur lors de la reprogrammation de la tache VGP : ' + error);
+                                                }
+                                            });
+                                        }
+                                    },
+                                    error: function(jqXHR, textStatus, errorThrown) {
+                                        calendar.fullCalendar('refetchEvents');
+                                        alert('Erreur lors la modification des données : ' + jqXHR.responseText)
+                                        console.log('Erreur lors la modification des données : ' + jqXHR.responseText);
                                     }
-                                },
-                                error: function(error) {
-                                    calendar.fullCalendar('refetchEvents');
-                                    alert('Erreur lors la modification des données : ' + error)
-                                    console.log('Erreur lors la modification des données : ' + error);
-                                }
-                            });
+                                });
+                            }
+                            
+                            
+                            
                         });
                     });
 
@@ -315,45 +325,45 @@
                             {% csrf_token %}
                             <div class="form_item_modal_input">
                                 <label for="titre_modif">Titre :</label>
-                                <input type="text" id="titre_modif" name="titre" maxlength="50">        
+                                <input type="text" id="titre_modif" name="titre" maxlength="50" required>        
                             </div>
                             <div class="form_item_modal_input">
                                 <label for="start_modif">Date de début :</label>
-                                <input type="date" id="start_modif" name="start">
+                                <input type="date" id="start_modif" name="start" required>
                             </div>
                             <div class="form_item_modal_input">
                                 <label for="end_modif">Date de fin :</label>
-                                <input type="date" id="end_modif" name="end">
+                                <input type="date" id="end_modif" name="end" required>
                             </div>
                             <div class="form_item_modal_input">
                                 <label for="num_certif_modif">Service notification :</label>
-                                <input type="number" id="num_certif_modif" name="num_certif" step="any" min="0" max="999999999">
+                                <input type="number" id="num_certif_modif" name="num_certif" step="any" min="100000000" max="999999999" required>
                             </div>
                             <div class="form_item_modal_input">
                                 <label for="sn_modif">Serial number :</label>
-                                <input type="text" id="sn_modif" name="sn" maxlength="50">
+                                <input type="text" id="sn_modif" name="sn" maxlength="50" required>
                             </div>
                             <div class="form_item_modal_input">
                                 <label for="pn_modif">PN :</label>
-                                <input type="text" id="pn_modif" name="pn" maxlength="50">  
+                                <input type="text" id="pn_modif" name="pn" maxlength="50" required>  
                             </div>
                             <div class="form_item_modal_select">
                                 <label for="lieu_modif">Lieu de l'opération:</label>
-                                <select id="lieu_modif" name="lieu">
+                                <select id="lieu_modif" name="lieu" required>
                                     <option value="in house" selected>In house</option>
                                     <option value="on site">On site</option>
                                 </select><br>
                             </div>
                             <div class="form_item_modal_select">
                                 <label for="type_modif">type d'opération :</label>
-                                <select id="type_modif" name="type">
+                                <select id="type_modif" name="type" required>
                                     <option value="VGP" selected>VGP</option>
                                     <option value="Reper">Reper</option>
                                 </select><br>
                             </div>
                             <div class="form_item_modal_select">
                                 <label for="statut_modif">Statut :</label>
-                                <select id="statut_modif" name="statut">
+                                <select id="statut_modif" name="statut" required>
                                     <option value="à faire" selected>à faire</option>
                                     <option value="en cours">en cours</option>
                                     <option value="fini">fini</option>
@@ -361,14 +371,14 @@
                             </div>
                             <div class="form_item_modal_input">
                                 <label for="nom_client_modif">Nom du client :</label>
-                                <input type="text" id="nom_client_modif" name="nom_client" maxlength="50"><br>
+                                <input type="text" id="nom_client_modif" name="nom_client" maxlength="50" required><br>
                             </div>
                             <div class="form_item_modal_textarea">
-                                <label for="commentaire_modif">Commentaire :</label>
+                                <label for="commentaire_modif">*Commentaire :</label>
                                 <textarea type="text" id="commentaire_modif" name="commentaire" maxlength="300"></textarea>
                             </div>
                             <div class="form_container_modal_checkbox">
-                                <label>Techniciens:</label>
+                                <label>*Techniciens:</label>
                                 <div class="test">
                                     <div class="form_item_modal_checkbox">
                                         <label>
@@ -385,7 +395,9 @@
                                 </div>
                             </div>
                         </form>
+                        <p>* Champ non obligatoire.</p>
                     </div>
+                    
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
                         <button type="button" class="btn btn-primary" id="validerModif">Valider</button>
@@ -393,5 +405,41 @@
                 </div>
             </div>
         </div>
+        <script>
+            function verifierFormulaire(form) {
+                // Récupération des champs du formulaire du modal bootstrap
+                var titre = form.titre_modif.value;
+                var start = form.start_modif.value;
+                var end = form.end_modif.value;
+                var num_certif = form.num_certif_modif.value;
+                var sn = form.sn_modif.value;
+                var pn = form.pn_modif.value;
+                var lieu = form.lieu_modif.value;
+                var type = form.type_modif.value;
+                var statut = form.statut_modif.value;
+                var nom_client = form.nom_client_modif.value;
+
+                if (titre == "" ||
+                    start == "" ||
+                    end == "" ||
+                    num_certif == "" ||
+                    sn == "" ||
+                    pn == "" ||
+                    lieu == "" ||
+                    type == "" ||
+                    statut == "" ||
+                    nom_client == "") {
+                    alert("Veuillez remplir tous les champs requis.");
+                    return false;
+                }
+
+                if (num_certif.toString().length != 9) {
+                    alert("Le champ 'Service notification' doit être composé de 9 chiffres.");
+                    return false;
+                }
+                return true;
+            }
+
+        </script>
     </body>
 </html>

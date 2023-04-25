@@ -3,7 +3,7 @@ from datetime import datetime
 import os
 from django.conf import settings
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import JsonResponse
+from django.http import HttpResponseBadRequest, JsonResponse
 from myapp.forms import * 
 from myapp.models import Tache, Absence
 import pandas as pd
@@ -19,16 +19,18 @@ def index(request):
 
 #Récupère toutes les tâches stockés dans la base de données et les envoie dans le calendrier du template index.html
 def all_taches(request):                                                                                                 
-    all_taches = Tache.objects.filter(start__range=[request.GET.get("start", None), request.GET.get("end", None)])
+    all_taches = Tache.objects.all() #Important de tout généré (avec all() et pas filtre()) sinon erreur sur les cas avec des dates sur deux mois du style date de début en mars et date de fin en avril. On verra la tache le mois de mars mais pas en avril.
     out = []                                                                                                 
     for tache in all_taches:
         color = None
         if tache.type == "VGP":
-            color = 'purple'
+            color = 'rgba(196,102,213,0.8)' # Violet
         elif tache.type == "Reper":
-            color = 'blue'
+            color = 'rgba(40,38,196,0.8)' # Bleu
         if tache.statut == 'fini':
-            color = 'green'                                              
+            color = 'rgba(17,176,48,0.8)' # Vert
+        if tache.statut == 'Non valide':
+            color = 'rgba(255,0,0,0.8)' # Rouge                                    
         out.append({                                                                                                     
             'id_tache': tache.id_tache,
             'start': tache.start.strftime('%Y-%m-%dT%H:%M:%S'),                                                         
@@ -53,11 +55,11 @@ def all_absences(request):
     for absence in all_absences:
         techniciens = absence.techniciens.all()
         if len(techniciens) > 1:
-            backgroundColor = "#000000"
+            backgroundColor = "#000000" # gris foncé
         elif techniciens[0].id_tech == 1:
-            backgroundColor = "#808080"
+            backgroundColor = "#808080" # gris clair
         else :
-            backgroundColor = "#805858"
+            backgroundColor = "#805858" # marron clair
 
         end = absence.end
         end += timedelta(days=1)
@@ -66,7 +68,7 @@ def all_absences(request):
             'start': absence.start.strftime('%Y-%m-%d'),
             'end':end.strftime('%Y-%m-%d'),
             'rendering': 'background',
-            'backgroundColor': '#000000',
+            'backgroundColor': backgroundColor,
             'titre': "Absence : " + absence.motif,
             'type': 'absence',                 
         })
@@ -78,9 +80,23 @@ def add_tache(request):
         form = tachesForm(request.POST)
         if form.is_valid():
             form.cleaned_data['end'] = form.cleaned_data['end'].replace(hour=12, minute=0, second=0, microsecond=0)
-            tache = form.save(commit=False)
+            tache, created = Tache.objects.update_or_create(
+                id_tache=form.cleaned_data['num_certif'],
+                defaults={
+                    'start': form.cleaned_data['start'],
+                    'end': form.cleaned_data['end'],
+                    'titre': form.cleaned_data['titre'],
+                    'num_certif': form.cleaned_data['num_certif'],
+                    'sn': form.cleaned_data['sn'],
+                    'pn': form.cleaned_data['pn'],
+                    'lieu': form.cleaned_data['lieu'],
+                    'type': form.cleaned_data['type'],
+                    'statut': form.cleaned_data['statut'],
+                    'commentaire': form.cleaned_data['commentaire'],
+                    'nom_client': form.cleaned_data['nom_client'],
+                }
+            )
             techniciens = form.cleaned_data['techniciens']
-            tache.save()
             tache.techniciens.set(techniciens)
             return redirect('index') # Redirige vers la page d'accueil après ajout réussi
     else:
@@ -113,8 +129,7 @@ def modifier_tache(request, id_tache):
         tache.save()
         tache.techniciens.set(techniciens)
         return redirect('index') # Redirige vers la page d'accueil après modification réussi
-    context = {'form': form}
-    return render(request, 'index.html', context)
+    return HttpResponseBadRequest("le formulaire est invalide.")
 
 #Permet de modifier la date d'une tache lors de son déplacement via l'interface du calendrier
 def update(request, id_tache):
@@ -140,9 +155,12 @@ def remove(request, id_tache):
     return JsonResponse(data)
 
 def get_techniciens(request, id_tache):
+    print("test")
+    techniciens_list = []
+    if int(id_tache) <0:
+        return JsonResponse({'techniciens': techniciens_list})
     tache = get_object_or_404(Tache, id_tache=id_tache)
     techniciens = tache.techniciens.all()
-    techniciens_list = []
     for technicien in techniciens:
         techniciens_list.append({'prenom': technicien.prenom, 'nom': technicien.nom})
     return JsonResponse({'techniciens': techniciens_list})
@@ -177,22 +195,27 @@ def alerteVGP(request):
 
 @csrf_exempt
 def save_tache(request):
+    VALEUR_ID_REPROGRAM_A_SOUSTRAIRE = 500000000 # Le numéro certif (service notification), n'est pas encore défini dans SAP lors des tache reprogrammé. J'effectue une règle pour retrouver directement mes tâches reprogrammées. Comme les taches se voit associé une notification commençant toujour par 500 millions. Je retire ce 500 millions pour avoir le nv id de ma tache
     if request.method == 'POST':
-        Tache.objects.create(
-            titre = request.POST.get("titre", None),
-            start = request.POST.get("start", None),
-            end = datetime.strptime(request.POST.get("end", None) + " 1:00:00", '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
-            num_certif = request.POST.get("num_certif", None),
-            sn = request.POST.get("sn", None),
-            pn = request.POST.get("pn", None),
-            lieu = request.POST.get("lieu", None),
-            type = request.POST.get("type", None),
-            statut = "à faire",
-            nom_client = request.POST.get("nom_client", None),
-            commentaire = request.POST.get("commentaire", None)
+        Tache.objects.update_or_create(
+            id_tache=int(int(request.POST.get("num_certif", None)) - VALEUR_ID_REPROGRAM_A_SOUSTRAIRE),
+            defaults={
+                'start': request.POST.get("start", None),
+                'end': datetime.strptime(request.POST.get("end", None) + " 1:00:00", '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
+                'titre': "À MODIFIER, ref VGP année dernière : " + request.POST.get("titre", None),
+                'num_certif': int(int(request.POST.get("num_certif", None)) - VALEUR_ID_REPROGRAM_A_SOUSTRAIRE),
+                'sn': request.POST.get("sn", None),
+                'pn': request.POST.get("pn", None),
+                'lieu': request.POST.get("lieu", None),
+                'type': request.POST.get("type", None),
+                'statut': "Non valide",
+                'commentaire': "Cette VGP à été reprogrammé par le système. Il faut modifier les informations en particulier le service notification !",
+                'nom_client': request.POST.get("nom_client", None),
+            }
         )
         return JsonResponse({'success': True})
     else:
+        print("test2")
         return JsonResponse({'success': False})
     
 def absences(request):
@@ -387,7 +410,7 @@ def add_Excell_taches(request):
     for index, colonnes in dfFic.iterrows():
         # création d'un dictionnaire contenant les champs à mettre à jour ou à créer
         data = {
-            'id_tache': colonnes['id_tache'],
+            'id_tache': colonnes['num_certif'],
             'titre': colonnes['titre'],
             'start': colonnes['start'],
             'end': colonnes['end'],
@@ -401,7 +424,7 @@ def add_Excell_taches(request):
             'commentaire': colonnes['commentaire'],
         }
         # mise à jour ou création de l'enregistrement correspondant dans la base de données
-        Tache.objects.update_or_create(id_tache=colonnes['id_tache'], defaults=data)
+        Tache.objects.update_or_create(id_tache=colonnes['num_certif'], defaults=data)
 
     messages.success(request, 'Le fichier Excel a été importé avec succès!')
     return render(request, 'AjoutParExcell.html', {'dfExcell': dfFic.to_html})
