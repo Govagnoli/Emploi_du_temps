@@ -11,7 +11,7 @@
     <!-- Quand le formulaire est rempli, cela exécute la fonction add_tache dans views.py et ajoute une donnée dans la base de données (sauf si le formulaire est invalide). -->
     <form method="POST" action="{% url 'add_absence' %}" class="form_ajout">
       {% csrf_token %} <!-- Créer un jeton pour empêcher les attaques de type CSRF -->
-      <label for="motif">*Motif :</label>
+      <label for="motif">Motif :</label>
       <input type="text" id="motif" name="motif" max="50" required><br>        
 
       <label for="start">Date de début :</label>
@@ -20,16 +20,15 @@
       <label for="end">Date de fin :</label>
       <input type="date" id="end" name="end" required><br>
 
-      <label>*Techniciens :</label>
+      <label>Techniciens :</label>
       {% for technicien in form.fields.techniciens.queryset %}
         <label>
-          <input type="checkbox" name="techniciens" value="{{ technicien.pk }}" {% if technicien in form.instance.techniciens.all %}checked{% endif %}>
+          <input type="checkbox" name="techniciens" id="{{ technicien.pk }}" value="{{ technicien.pk }}" {% if technicien in form.instance.techniciens.all %}checked{% endif %}>
           {{ technicien.nom }} {{ technicien.prenom }}
         </label>
       {% endfor %}
 
       <input type="submit" id="submitBtn" name="enregistrer" value="Enregistrer">
-      <p>* Champ non obligatoire.</p>
     </form>
 
     <script>
@@ -37,10 +36,16 @@
       var startInput = document.getElementById('start');
       var endInput = document.getElementById('end');
       const submitBtn = document.getElementById('submitBtn');
-    
-      // ajoute un événement lorsqu'un champ de date est modifié
-      startInput.addEventListener('change', validateDate);
-      endInput.addEventListener('change', validateDate);
+
+      // Si le submit button est clické mais aucun technicien n'est sélectionné renvoie msg erreur et bloque l'ajout de l'absence
+      submitBtn.addEventListener('click', function(event) {
+        var checkBoxClement = document.getElementById('1');
+        var checkBoxFranck = document.getElementById('2');
+        if(!checkBoxClement.checked && !checkBoxFranck.checked) {
+          event.preventDefault(); // empêche la soumission du formulaire
+          alert("Veuillez sélectionner au moins un technicien.")
+        }
+      });
     
       // fonction de validation des dates
       function validateDate() {

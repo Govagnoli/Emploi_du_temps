@@ -15,7 +15,7 @@ class tachesForm(forms.ModelForm):
             'start', 
             'end',
             'titre',  
-            'num_certif', 
+            'notification', 
             'sn',
             'pn', 
             'lieu', 

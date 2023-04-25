@@ -83,12 +83,12 @@
                 },
                 eventResize: function(info) {
                     console.log(info);
-                    var id_tache = info.id_tache;
+                    var notification = info.notification;
                     var start = moment(info.start).format('YYYY-MM-DD HH:mm:ss');
                     var end = moment(info.end).format('YYYY-MM-DD HH:mm:ss');
                     $.ajax({
                         type: "POST",
-                        url: '/update/'+ id_tache +'/',
+                        url: '/update/'+ notification +'/',
                         dataType: "json",
                         data: {
                             'start': start,
@@ -105,12 +105,12 @@
                     });
                 },
                 eventDrop: function (event) {
-                    var id_tache = event.id_tache;
+                    var notification = event.notification;
                     var start =  moment(event.start).format('YYYY-MM-DD HH:mm:ss');
                     var end = moment(event.end).format('YYYY-MM-DD HH:mm:ss');
                     $.ajax({
                         type: "POST",
-                        url: '/update/'+ id_tache +'/',
+                        url: '/update/'+ notification +'/',
                         data: {
                             'start': start,
                             'end': end,
@@ -128,12 +128,12 @@
                 },
 
                 eventClick: function(event) {
-                    var id_tache = event.id_tache
+                    var notification = event.notification
                     // Remplir les champs de la boîte de dialogue modale avec les détails de l'événement
                     $('#titre').html(event.title);
                     $('#start').html(moment(event.start).format('DD/MM/YYYY'));
                     $('#end').html(moment(event.end).format('DD/MM/YYYY'));
-                    $('#num_certif').html(event.num_certif);
+                    $('#notification').html(event.notification);
                     $('#sn').html(event.sn);
                     $('#pn').html(event.pn);
                     $('#lieu').html(event.lieu);
@@ -144,7 +144,7 @@
 
                     // Récupère les techniciens associés à la tache
                     $.ajax({
-                        url: '/get_techniciens/'+ id_tache +'/',
+                        url: '/get_techniciens/'+ notification +'/',
                         type: 'GET',
                         dataType: 'json',
                         success: function(data) {
@@ -184,7 +184,7 @@
                         $('#titre_modif').val(event.title);
                         $('#start_modif').val(event.start.toISOString().slice(0,10));
                         $('#end_modif').val(event.end.toISOString().slice(0,10));
-                        $('#num_certif_modif').val(event.num_certif);
+                        $('#notification_modif').val(event.notification);
                         $('#sn_modif').val(event.sn);
                         $('#pn_modif').val(event.pn);
                         $('#lieu_modif').val(event.lieu);
@@ -201,7 +201,7 @@
                             if(verifierFormulaire(document.getElementById('form_modif'))) {
                                 $.ajax({
                                     type: 'POST',
-                                    url: '/modifier_tache/'+ id_tache +'/',
+                                    url: '/modifier_tache/'+ notification +'/',
                                     data: $('#form_modif').serialize(),
                                     success: function(response) {
                                         calendar.fullCalendar('refetchEvents');
@@ -242,9 +242,6 @@
                                     }
                                 });
                             }
-                            
-                            
-                            
                         });
                     });
 
@@ -253,7 +250,7 @@
                     $('#deleteEventButton').click(function() {
                         $.ajax({
                             type: "GET",
-                            url: '/remove/'+ id_tache +'/',
+                            url: '/remove/'+ notification +'/',
                             dataType: "json",
                             success: function (data) {
                                 calendar.fullCalendar('refetchEvents');
@@ -291,7 +288,7 @@
                         <p><strong>Titre :</strong> <span id="titre"></span></p>
                         <p><strong>Début :</strong> <span id="start"></span></p>
                         <p><strong>Fin :</strong> <span id="end"></span></p>
-                        <p><strong>Service notification :</strong> <span id="num_certif"></span></p>
+                        <p><strong>Service notification :</strong> <span id="notification"></span></p>
                         <p><strong>Serial number :</strong> <span id="sn"></span></p>
                         <p><strong>PN :</strong> <span id="pn"></span></p>
                         <p><strong>Lieu :</strong> <span id="lieu"></span></p>
@@ -336,8 +333,8 @@
                                 <input type="date" id="end_modif" name="end" required>
                             </div>
                             <div class="form_item_modal_input">
-                                <label for="num_certif_modif">Service notification :</label>
-                                <input type="number" id="num_certif_modif" name="num_certif" step="any" min="100000000" max="999999999" required>
+                                <label for="notification_modif">Service notification :</label>
+                                <input type="number" id="notification_modif" name="notification" step="any" min="100000000" max="999999999" required>
                             </div>
                             <div class="form_item_modal_input">
                                 <label for="sn_modif">Serial number :</label>
@@ -411,7 +408,7 @@
                 var titre = form.titre_modif.value;
                 var start = form.start_modif.value;
                 var end = form.end_modif.value;
-                var num_certif = form.num_certif_modif.value;
+                var notification = form.notification_modif.value;
                 var sn = form.sn_modif.value;
                 var pn = form.pn_modif.value;
                 var lieu = form.lieu_modif.value;
@@ -422,7 +419,7 @@
                 if (titre == "" ||
                     start == "" ||
                     end == "" ||
-                    num_certif == "" ||
+                    notification == "" ||
                     sn == "" ||
                     pn == "" ||
                     lieu == "" ||
@@ -433,13 +430,12 @@
                     return false;
                 }
 
-                if (num_certif.toString().length != 9) {
+                if (notification.toString().length != 9) {
                     alert("Le champ 'Service notification' doit être composé de 9 chiffres.");
                     return false;
                 }
                 return true;
             }
-
         </script>
     </body>
 </html>
