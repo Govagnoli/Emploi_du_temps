@@ -25,8 +25,6 @@
                 editable: true,
                 height: 'auto',
                 contentHeight : 300,
-                // with: '3000px',
-                //eventLimit: 5, //Pour limiter l'affichage (à 5 dans ce cas) des tâches sur une journée 
                 eventResizableFromStart: true,
                 header: {
                     left: 'prev,next today',
@@ -81,6 +79,7 @@
                         })                                          
                     }
                 },
+                // Evenement lors de la redimension d'une tache par l'interface
                 eventResize: function(info) {
                     console.log(info);
                     var notification = info.notification;
@@ -104,6 +103,7 @@
                         }
                     });
                 },
+                // Evenement lors de déplacement d'une tache par l'interface
                 eventDrop: function (event) {
                     var notification = event.notification;
                     var start =  moment(event.start).format('YYYY-MM-DD HH:mm:ss');
@@ -126,14 +126,14 @@
                         }
                     });
                 },
-
+                // Gestion des clics sur les taches
                 eventClick: function(event) {
                     var notification = event.notification
-                    // Remplir les champs de la boîte de dialogue modale avec les détails de l'événement
+                    // Remplir les champs de la boîte de dialogue modal avec les détails de l'événement
                     $('#titre').html(event.title);
                     $('#start').html(moment(event.start).format('DD/MM/YYYY'));
                     $('#end').html(moment(event.end).format('DD/MM/YYYY'));
-                    $('#notification').html(event.notification);
+                    $('#notification').html(notification);
                     $('#sn').html(event.sn);
                     $('#pn').html(event.pn);
                     $('#lieu').html(event.lieu);
@@ -180,11 +180,11 @@
                     $('#editEventButton').off('click');
                     $('#editEventButton').click(function() {
                         $('#eventModal').modal('hide');
-                        //Affectation des données associé à la tache dans le formulaire de modification
+                        //Affectation des données associé à la tache dans le formulaire de modification du modal
                         $('#titre_modif').val(event.title);
                         $('#start_modif').val(event.start.toISOString().slice(0,10));
                         $('#end_modif').val(event.end.toISOString().slice(0,10));
-                        $('#notification_modif').val(event.notification);
+                        $('#notification_modif').val(notification);
                         $('#sn_modif').val(event.sn);
                         $('#pn_modif').val(event.pn);
                         $('#lieu_modif').val(event.lieu);
@@ -192,16 +192,54 @@
                         $('#statut_modif').val(event.statut);
                         $('#nom_client_modif').val(event.nom_client);
                         $('#commentaire_modif').val(event.commentaire);
+                        
+                        // Récupère les techniciens associés à la tache et check les bonnes checkboxs du modal
+                        $.ajax({
+                            url: '/get_Id_techniciens/'+ notification +'/',
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                var techniciens = data.techniciens;
+                                switch (techniciens.length){
+                                    case PAS_DE_TECHNICIEN:
+                                        //Si pas de technicien alors on affiche rien
+                                        $('#tech1_modif').prop('checked', false);
+                                        $('#tech2_modif').prop('checked', false);
+                                        break;
+                                    case UN_TECHNICIEN:
+                                        //Si un technicien alors on check une checkbox
+                                        if(techniciens[0].id_tech = 1) {
+                                            $('#tech1_modif').prop('checked', true);
+                                            $('#tech2_modif').prop('checked', false);
+                                        } else {
+                                            $('#tech1_modif').prop('checked', false);
+                                            $('#tech2_modif').prop('checked', true);
+                                        }
+                                        break;
+                                    default:
+                                        $('#tech1_modif').prop('checked', true);
+                                        $('#tech2_modif').prop('checked', true);
+                                        break;
+                                }
+                            },
+                            error: function(data) {
+                                calendar.fullCalendar('refetchEvents');
+                                console.log('Erreur lors de la récupération des techniciens');
+                            },  
+                        });
+
                         //Afichage du modal bootstrap (popUp)
                         $('#modifModal').modal('show');
 
                         //Gestion bouton valider du modal modification
                         $('#validerModif').off('click');
-                        $('#validerModif').click(function() {                            
+                        $('#validerModif').click(function() {                          
                             if(verifierFormulaire(document.getElementById('form_modif'))) {
+                                var oldNotification = notification;
+                                var newNotification = $('#notification_modif').val();
                                 $.ajax({
                                     type: 'POST',
-                                    url: '/modifier_tache/'+ notification +'/',
+                                    url: '/modifier_tache/'+ oldNotification +'/'+ newNotification +'/',
                                     data: $('#form_modif').serialize(),
                                     success: function(response) {
                                         calendar.fullCalendar('refetchEvents');
@@ -234,18 +272,37 @@
                                                 }
                                             });
                                         }
+                                        if(oldNotification!=newNotification) {
+                                            $.ajax({
+                                                type: "GET",
+                                                url: '/remove/'+ oldNotification +'/',
+                                                dataType: "json",
+                                                success: function (data) {
+                                                    calendar.fullCalendar('refetchEvents');
+                                                },
+                                                error: function (data) {
+                                                    calendar.fullCalendar('refetchEvents');
+                                                    alert('Suppression impossible. Erreur système');
+                                                }                            
+                                            });
+                                        }
                                     },
-                                    error: function(jqXHR, textStatus, errorThrown) {
-                                        calendar.fullCalendar('refetchEvents');
-                                        alert('Erreur lors la modification des données : ' + jqXHR.responseText)
-                                        console.log('Erreur lors la modification des données : ' + jqXHR.responseText);
+                                    error: function(error) {
+                                        if (error.status === 400) {
+                                            alert('Vous ne pouvez pas modifier une tache avec une service notification déjà existante');
+                                        } else {
+                                            calendar.fullCalendar('refetchEvents');
+                                            alert('Erreur lors la modification des données')
+                                            console.log('Erreur lors la modification des données');
+                                        }
+                                        
                                     }
                                 });
                             }
                         });
                     });
 
-                    // Bouton supprimer
+                    // Bouton supprimer du modal description
                     $('#deleteEventButton').off('click');
                     $('#deleteEventButton').click(function() {
                         $.ajax({
@@ -299,9 +356,13 @@
                         <p><strong>Commentaire :</strong> <span id="commentaire"></span></p>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
-                        <button type="button" class="btn btn-primary" id="editEventButton">Modifier</button>
-                        <button type="button" class="btn btn-danger" id="deleteEventButton">Supprimer</button>
+                        <div class="mr-auto">
+                            <button type="button" class="btn btn-danger" id="deleteEventButton">Supprimer</button>
+                        </div>
+                        <div class="ml-auto">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+                            <button type="button" class="btn btn-primary" id="editEventButton">Modifier</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -379,13 +440,13 @@
                                 <div class="test">
                                     <div class="form_item_modal_checkbox">
                                         <label>
-                                            <input type="checkbox" name="techniciens" value="1">
+                                            <input type="checkbox" id="tech1_modif" name="techniciens" value="1">
                                             Auriol Clément
                                         </label>
                                     </div>
                                     <div class="form_item_modal_checkbox">
                                         <label>
-                                            <input type="checkbox" name="techniciens" value="2">
+                                            <input type="checkbox" id="tech2_modif" name="techniciens" value="2">
                                             Galve Franck
                                         </label>
                                     </div>
@@ -405,6 +466,7 @@
         <script>
             function verifierFormulaire(form) {
                 // Récupération des champs du formulaire du modal bootstrap
+                // Permet de vérifier si les informations du formulaire sont correctes
                 var titre = form.titre_modif.value;
                 var start = form.start_modif.value;
                 var end = form.end_modif.value;
@@ -415,7 +477,8 @@
                 var type = form.type_modif.value;
                 var statut = form.statut_modif.value;
                 var nom_client = form.nom_client_modif.value;
-
+                
+                //On vérifie si les champs sont vides
                 if (titre == "" ||
                     start == "" ||
                     end == "" ||
@@ -429,7 +492,12 @@
                     alert("Veuillez remplir tous les champs requis.");
                     return false;
                 }
-
+                // Msg d'erreur si la date de fin est inférieur à la date de début
+                if(new Date(start)>new Date(end)) {
+                    alert("La date de fin ne peut pas être inférieur à la date de début.");
+                    return false;
+                }
+                // On vérifie si la notification comporte exactement 9 chiffres
                 if (notification.toString().length != 9) {
                     alert("Le champ 'Service notification' doit être composé de 9 chiffres.");
                     return false;

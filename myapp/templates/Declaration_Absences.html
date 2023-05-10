@@ -37,6 +37,10 @@
       var endInput = document.getElementById('end');
       const submitBtn = document.getElementById('submitBtn');
 
+      // ajoute un événement lorsqu'un champ de date est modifié
+      startInput.addEventListener('change', validateDate);
+      endInput.addEventListener('change', validateDate);
+
       // Si le submit button est clické mais aucun technicien n'est sélectionné renvoie msg erreur et bloque l'ajout de l'absence
       submitBtn.addEventListener('click', function(event) {
         var checkBoxClement = document.getElementById('1');
@@ -45,6 +49,7 @@
           event.preventDefault(); // empêche la soumission du formulaire
           alert("Veuillez sélectionner au moins un technicien.")
         }
+
       });
     
       // fonction de validation des dates

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Les Absences</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' rel='stylesheet' />
+    <script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js'></script>
+
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}">
+    <style type="text/css">
+        table {
+            border-collapse: collapse;
+            width: auto;
+            margin: auto;
+        }
+        th, td {
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #4CAF50;
+            color: #F5F3F3;
+        }
+        tr:nth-child(even) {
+            background-color: rgb(242, 242, 242);
+        }
+    </style>
+</head>
+<body>
+    {% include 'menu.html' %}
+    <div class="container_absences">
+        <div class="h3_absences">
+            <h3>Vous trouverez ici toutes les taches finies.</h3>
+        </div> 
+    </div>
+    {% if estVide %}
+        <ul class="messages">
+            <p>Aucune tache n'est défini comme 'fini'.</p>
+        </ul>
+    {% else %}
+        <div class="container_absences">
+            <div class="df_absences">
+                <p>En cliquant sur une ligne, vous pouvez afficher les informations concernant la tache sélectionnée.</p>
+                {{TachesFinies|safe}}
+            </div>
+        </div>
+    {% endif %}
+
+    <br><br><br><br>
+    
+    <script defer>
+        const PAS_DE_TECHNICIEN = 0;
+        const UN_TECHNICIEN = 1;
+        document.addEventListener("DOMContentLoaded", function() {
+            const dataframe = document.getElementById('tab');
+            dataframe.addEventListener('click', (event) => {
+                const notification = event.target.parentNode.id;
+                $.ajax({
+                    type: "GET",
+                    url: '/getTacheById/'+ notification +'/',
+                    dataType: 'json',
+                    success: function(data) {
+                        const dateDebut = new Date(data.tache[1]).toISOString().slice(0,10);
+                        const dateFin = new Date(data.tache[2]).toISOString().slice(0,10);
+                        
+                        // Remplir les champs de la boîte de dialogue modal avec les détails de l'événement
+                        $('#titre').html(data.tache[0]);
+                        $('#start').html(dateDebut);
+                        $('#end').html(dateFin);
+                        $('#notification').html(notification);
+                        $('#sn').html(data.tache[3]);
+                        $('#pn').html(data.tache[4]);
+                        $('#lieu').html(data.tache[5]);
+                        $('#type').html(data.tache[6]);
+                        $('#statut').html(data.tache[7]);
+                        $('#commentaire').html(data.tache[8]);
+                        $('#nom_client').html(data.tache[9]);
+                        $('#eventModal').modal('show');
+                        // Récupère les techniciens associés à la tache
+                        $.ajax({
+                            url: '/get_techniciens/'+ notification +'/',
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                var techniciens = data.techniciens;
+                                var techniciensText = '';
+                                switch (techniciens.length){
+                                    case PAS_DE_TECHNICIEN:
+                                        //Si pas de technicien alors on affiche rien
+                                        $('#techniciens').html(techniciensText);
+                                        break;
+                                    case UN_TECHNICIEN: 
+                                        //Si 1 technicien alors on affiche son nom et prénom
+                                        techniciensText =techniciens[0].prenom + ' ' + techniciens[0].nom;
+                                        $('#techniciens').html(techniciensText);
+                                        break;
+                                    default:
+                                        //Si + de 1 technicien alors on affiche le nom et prénom de chacun en les séparant par une virgule
+                                        for (var i = 0; i < techniciens.length; i++) {
+                                            techniciensText += techniciens[i].prenom + ' ' + techniciens[i].nom + ', ';
+                                        }
+                                        techniciensText = techniciensText.slice(0, -2);
+                                        $('#techniciens').html(techniciensText);
+                                        break;
+                                }                            
+                            },
+                            error: function(data) {
+                                console.log('Erreur lors de la récupération des techniciens');
+                            }           
+                        }); // Fin requete techniciens
+                        
+                    }, // fin du sucess global
+                    error: function (data) {
+                        console.log("Si on clique sur une des lignes du tableau l'erreur HTTP 404 not found disparait. (tout le tableau est cliquable)")
+                    } 
+                });
+            });
+        });
+        
+    </script>
+    <!-- Modal description d'une tache -->
+    <div class="modal fade" id="eventModal" tabindex="-1" role="dialog" aria-labelledby="eventModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="eventModalLabel">Détails de l'événement</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Contenu de la boîte de dialogue modale -->
+                    <p><strong>Titre :</strong> <span id="titre"></span></p>
+                    <p><strong>Début :</strong> <span id="start"></span></p>
+                    <p><strong>Fin :</strong> <span id="end"></span></p>
+                    <p><strong>Service notification :</strong> <span id="notification"></span></p>
+                    <p><strong>Serial number :</strong> <span id="sn"></span></p>
+                    <p><strong>PN :</strong> <span id="pn"></span></p>
+                    <p><strong>Lieu :</strong> <span id="lieu"></span></p>
+                    <p><strong>Type :</strong> <span id="type"></span></p>
+                    <p><strong>Statut :</strong> <span id="statut"></span></p>
+                    <p><strong>Nom du client :</strong> <span id="nom_client"></span></p>
+                    <p><strong>Technicien(s) :</strong> <span id="techniciens"></span></p>
+                    <p><strong>Commentaire :</strong> <span id="commentaire"></span></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

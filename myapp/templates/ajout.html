@@ -75,7 +75,7 @@
         startInput.addEventListener('change', validateDate);
         endInput.addEventListener('change', validateDate);
       
-        // fonction de validation des dates
+        // fonction de validation des dates. La date de fin ne peut pas être strictement inférieur à la date de début.
         function validateDate() {
           const startDate = Date.parse(startInput.value);
           const endDate = Date.parse(endInput.value);

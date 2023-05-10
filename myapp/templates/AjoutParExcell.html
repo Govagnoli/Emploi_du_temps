@@ -39,6 +39,7 @@
             <br><br>
             <input type="submit" name="import" value="Importer">
         </form>
+        <!-- Si des messages d'erreurs sont renvoyés par la vue add_Excell_taches. Alors ils seront transmis ici -->
         <div style="margin-left: 20px;">
             {% for message in messages|messageErreursExcell:"erreur_Excell" %}
                 <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>

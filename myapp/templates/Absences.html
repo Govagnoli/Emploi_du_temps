@@ -29,7 +29,6 @@
 </head>
 <body>
     {% include 'menu.html' %}
-
     <div class="container_absences">
         <div class="h3_absences">
             <h3>Vous trouverez ici toutes les prochaines absences.</h3>
@@ -72,7 +71,6 @@
         </div>
     {% endif %}
 
-    
     <script defer>
         const PAS_DE_TECHNICIEN = 0;
         const UN_TECHNICIEN = 1;
@@ -163,7 +161,7 @@
                         });
                     },
                     error: function (data) {
-                        alert("Erreur; Veuillez cliquer sur une absence.")
+                        console.log("Si on clique sur une des lignes du tableau l'erreur HTTP 404 not found disparait. (tout le tableau est cliquable)")
                     }
                 });
             });
@@ -307,9 +305,9 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
-                    <button type="button" class="btn btn-primary" id="validerModif">Valider</button>
-                    <button type="button" class="btn btn-danger" id="deleteEventButton">Supprimer</button>
+                    <button type="button" class="btn btn-danger mr-auto" id="deleteEventButton">Supprimer</button>
+                    <button type="button" class="btn btn-secondary " data-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-primary " id="validerModif">Valider</button>
                 </div>
             </div>
         </div>
@@ -325,6 +323,11 @@
             // Msg d'erreur si champ vide
             if (motif == "" || start == "" || end == "") {
                 alert("Veuillez remplir tous les champs requis.");
+                return false;
+            }
+            // Msg d'erreur si la date de fin est inférieur à la date de début
+            if(new Date(start)>new Date(end)) {
+                alert("La date de fin ne peut pas être inférieur à la date de début.");
                 return false;
             }
             // Msg d'erreur si aucun technicien sélectionné

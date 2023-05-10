@@ -21,23 +21,35 @@ def index(request):
 #Récupère toutes les tâches stockés dans la base de données et les envoie dans le calendrier du template index.html
 def all_taches(request):                                                                                                 
     all_taches = Tache.objects.all() #Important de tout généré (avec all() et pas filtre()) sinon erreur sur les cas avec des dates sur deux mois du style date de début en mars et date de fin en avril. On verra la tache le mois de mars mais pas en avril.
-    out = []                                                                                                 
+    out = []
+    aTechnicien = True                                                                                                
     for tache in all_taches:
         color = None
         if tache.type == "VGP":
-            color = 'rgba(196,102,213,0.8)' # Violet
+            color = 'rgba(35,153,214,0.8)' # Bleu hydro clair 'rgba(35,153,214,0.8)'                # Magenta hydro 'rgba(229,0,125,0.8)'
         elif tache.type == "Reper":
-            color = 'rgba(40,38,196,0.8)' # Bleu
+            color = 'rgba(0,62,119,0.8)'    # Bleu hydro foncé 'rgba(0,62,119,0.8)'         # Jaune hydro 'rgba(255,222,27,0.8)'
+        if tache.lieu == "on site":
+            color = 'rgba(196,102,213,0.8)'  # Violet 'rgba(196,102,213,0.8)'
+        if (len(tache.techniciens.all())==0) :
+            color = 'rgba(204,204,204,0.2)'  # Gris hydro
+            textColor = 'rgba(111,111,111,1)'
+        else :
+            textColor = 'rgba(245,243,243,1)'      
+
         if tache.statut == 'fini':
-            color = 'rgba(17,176,48,0.8)' # Vert
+            color = 'rgba(17,176,48,0.8)'   # Vert 'rgba(17,176,48,0.8)'                    # Vert Hydro 'rgba(161,198,17,0.8)'
+            textColor = 'rgba(245,243,243,1)'
         if tache.statut == 'Non valide':
-            color = 'rgba(255,0,0,0.8)' # Rouge                                    
+            color = 'rgba(255,0,0,0.8)'     # Rouge 'rgba(255,0,0,0.8)'                     # Rouge Hydro 'rgba(227,0,15,0.8)'
+            textColor = 'rgba(245,243,243,1)'
+        
         out.append({                                                                                                     
             'notification': tache.notification,
             'start': tache.start.strftime('%Y-%m-%dT%H:%M:%S'),                                                         
             'end': tache.end.replace(hour=12, minute=0, second=0, microsecond=0),
             'title': tache.titre,
-            'sn': tache.sn,\
+            'sn': tache.sn,
             'pn' : tache.pn,
             'lieu' : tache.lieu,
             'type' : tache.type,
@@ -45,7 +57,7 @@ def all_taches(request):
             'commentaire': tache.commentaire,
             'nom_client': tache.nom_client,
             'color': color,
-            'textColor' : '#F5F3F3'                                                   
+            'textColor' : textColor                                                  
         })
     return JsonResponse(out, safe=False)
 
@@ -121,8 +133,13 @@ def add_absence(request):
 
 # À partir du calendrier permet lors de la modification d'une tache existante de mettre à jour les données et donc de possiblement les modifier
 # à noter que toutes les données sont modifiés. Ca récupère toutes les données du formulaire puis écrase les données de la tache dans la base de données
-def modifier_tache(request, notification):
-    instance = get_object_or_404(Tache, notification=notification)
+def modifier_tache(request, oldNotification, newNotification):
+    # Si la notification est modifié et qu'elle référence déjà une autre donnée de la base alors il n'est pas possible de l'utiliser comme notification
+    print(newNotification)
+    if(oldNotification!=newNotification and Tache.objects.filter(notification=newNotification).exists()):
+        return JsonResponse({'error': 'Le formulaire est invalide'}, status=400)
+
+    instance = get_object_or_404(Tache, notification=oldNotification)
     form = tachesForm(request.POST, instance=instance)
     if form.is_valid():
         form.cleaned_data['end'] = form.cleaned_data['end'].replace(hour=12, minute=0, second=0, microsecond=0)
@@ -157,7 +174,7 @@ def remove(request, notification):
     data = {}
     return JsonResponse(data)
 
-# Récupère les techniciens associés à une tache identifié par sa notification
+# Récupère les techniciens associés à une tache identifié par sa notification et renvoie dans une liste le nom et le prénom des ou du technicien(s) concerné(s)
 def get_techniciens(request, notification):
     techniciens_list = []
     if int(notification) <0:
@@ -166,6 +183,17 @@ def get_techniciens(request, notification):
     techniciens = tache.techniciens.all()
     for technicien in techniciens:
         techniciens_list.append({'prenom': technicien.prenom, 'nom': technicien.nom})
+    return JsonResponse({'techniciens': techniciens_list})
+
+# Récupère les techniciens associés à une tache identifié par sa notification et renvoie dans une liste l'id_tech des ou du technicien(s) concerné(s)
+def get_Id_techniciens(request, notification):
+    techniciens_list = []
+    if int(notification) <0:
+        return JsonResponse({'techniciens': techniciens_list})
+    tache = get_object_or_404(Tache, notification=notification)
+    techniciens = tache.techniciens.all()
+    for technicien in techniciens:
+        techniciens_list.append({'id_tech': technicien.id_tech})
     return JsonResponse({'techniciens': techniciens_list})
 
 # Récupère les techniciens associés à une absence identifié par l'id absence
@@ -255,6 +283,23 @@ def absences(request):
 
     return render(request, 'Absences.html', {'absencesFiltrees': tab, 'absencesSansFiltre': tab2})
 
+# Récupère toutes les tâches fini et les renvoie dans un tableau html à HistoriqueTacheFini.html 
+def getAllTacheFini(request) :
+    taches = Tache.objects.filter(statut="fini").order_by('start')
+    if not taches:
+        messages.success(request, "Aucune tache n'est défini comme 'fini'.")
+        return render(request, 'HistoriqueTacheFini.html', {'estVide': True})
+    
+    tab = '<table border="1" class="dataframe" id="tab"> <thead> <tr style="text-align: right;"></th><th></th><th>Titre</th> <th>date de début</th> <th>date de fin</th> <th>Service notification</th> <th>Serial number</th> <th>pn</th> <th>Lieu</th> <th>Type</th> <th>Statut</th><th>Nom client</th> </tr> </thead> <tbody>'
+    i=0
+    for tache in taches:
+        start = tache.start.strftime('%d/%m/%Y')
+        end = tache.end.strftime('%d/%m/%Y')
+        tab += '<tr id="' + str(tache.notification) +'"><th>' + str(i) +'</th><td>' + str(tache.titre) +'</td><td>' + str(start) +'</td><td>' + str(end) +'</td><td>' + str(tache.notification) +'</td><td>' + str(tache.sn) +'</td><td>' + str(tache.pn) +'</td><td>' + str(tache.lieu) +'</td><td>' + str(tache.type) +'</td><td>' + str(tache.statut) +'</td><td>' + str(tache.nom_client) +'</td></tr>'
+        i += 1
+    tab += '</tbody></table>'
+    return render(request, 'HistoriqueTacheFini.html', {'TachesFinies': tab, 'estVide': False})
+
 # Permet de récupérer une absence en fonction de son identifiant et renvoie chaque information de l'absence sous forme de tableau python.
 def getAbsenceById(request, id_abs):
     absence = get_object_or_404(Absence, id_abs=id_abs)
@@ -264,6 +309,22 @@ def getAbsenceById(request, id_abs):
     listAbsence.append(absence.start)
     listAbsence.append(absence.end)
     return JsonResponse({'absence': listAbsence})
+
+# Permet de récupérer une tache en fonction de son identifiant et renvoie chaque information de la tache sous forme de tableau python.
+def getTacheById(request, notification):
+    tache = get_object_or_404(Tache, notification=notification)
+    listTaches = []
+    listTaches.append(tache.titre)      #0
+    listTaches.append(tache.start)      #1
+    listTaches.append(tache.end)        #2
+    listTaches.append(tache.sn)         #3
+    listTaches.append(tache.pn)         #4
+    listTaches.append(tache.lieu)       #5
+    listTaches.append(tache.type)       #6
+    listTaches.append(tache.statut)     #7
+    listTaches.append(tache.commentaire)#8
+    listTaches.append(tache.nom_client) #9
+    return JsonResponse({'tache': listTaches})
 
 # Permet de modifier une absence en fonction de son identifiant
 def modifier_absence(request, id_abs):
@@ -297,13 +358,12 @@ def add_Excell_taches(request):
     file = request.FILES.get('xlsx_file')
     if not file:
         messages.error(request, 'Erreur : fichier manquant.', extra_tags='erreur_Excell')
-        #messages.error(request, 'Erreur : fichier manquant.')
         return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
     
     # Vérification de l'extension du fichier
     if not file.name.endswith('.XLSX') :
         if not file.name.endswith('.xlsx'):
-            messages.error(request, 'Erreur : le fichier doit être un document Excel avec l\'extension .xlsx.')
+            messages.error(request, 'Erreur : le fichier doit être un document Excel avec l\'extension .xlsx.', extra_tags='erreur_Excell')
             return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
         
     # Écriture du fichier sur le disque
@@ -313,17 +373,17 @@ def add_Excell_taches(request):
             for chunk in file.chunks():
                 destination.write(chunk)
     except Exception as e:
-        messages.error(request, f'Erreur lors de l\'écriture du fichier : {e}.')
+        messages.error(request, f'Erreur lors de l\'écriture du fichier : {e}.', extra_tags='erreur_Excell')
         return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
     
     # Récupération des données du fichier Excell.
     try:
         dfFic = pd.read_excel(os.path.join(settings.EXCELL_DIR, file.name))
     except FileNotFoundError:
-        messages.error(request, 'Erreur : le fichier est manquant : {e}.')
+        messages.error(request, 'Erreur : le fichier est manquant : {e}.', extra_tags='erreur_Excell')
         return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
     except ValueError:
-        messages.error(request, 'Erreur : la feuille demandée n\'existe pas : {e}.')
+        messages.error(request, 'Erreur : la feuille demandée n\'existe pas : {e}.', extra_tags='erreur_Excell')
         return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
     
     # Je récupère et renomme les colonnes dont j'ai besoin.
@@ -341,7 +401,7 @@ def add_Excell_taches(request):
             dfFic.loc[index, 'start'] = dateD
             dfFic.loc[index, 'end'] = dateF_datetime.replace(hour=12, minute=0, second=0)
         else: 
-            messages.error(request, 'Erreur : Les dates de fin (Requested deliv.date) doivent être au format date (JJ/MM/AAAA). (pour les devs) Si le problème persiste vérifier que les données sont au format pandas.Timestamp dans python: {e}.')
+            messages.error(request, 'Erreur : Les dates de fin (Requested deliv.date) doivent être au format date (JJ/MM/AAAA). (pour les devs) Si le problème persiste vérifier que les données sont au format pandas.Timestamp dans python: {e}.', extra_tags='erreur_Excell')
             return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})
 
     # Récupération du lieu du déroulement de l'opération
@@ -436,5 +496,5 @@ def add_Excell_taches(request):
         # mise à jour ou création de l'enregistrement correspondant dans la base de données
         Tache.objects.update_or_create(notification=colonnes['notification'], defaults=data)
 
-    messages.success(request, 'Le fichier Excel a été importé avec succès!')
-    return render(request, 'AjoutParExcell.html', {'dfExcell': dfFic.to_html})
+    messages.success(request, 'Le fichier Excel a été importé avec succès!', extra_tags='erreur_Excell')
+    return render(request, 'AjoutParExcell.html', {'erreur_Excell': True})

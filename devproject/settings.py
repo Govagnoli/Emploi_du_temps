@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-h3_aqcuorc%ag!2f$5x^=c=k$fxfhqzyh8yb$u*0k-=itkc(ym'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True # L'option DEBUG peut-être egal à False. Mais on ne verra plus les pages d'erreur en cas de problème. Pratique à utiliser lorsque l'on développe ou debug l'application
 
 ALLOWED_HOSTS = []
 
@@ -75,6 +75,7 @@ WSGI_APPLICATION = 'devproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+# Permet de se connecter à la base de données 'gestion_edt' local de MySQL. 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -115,7 +116,7 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_TZ = False
+USE_TZ = False # Gestion des timezones (fuseaux horaires)
 
 
 # Static files (CSS, JavaScript, Images)
