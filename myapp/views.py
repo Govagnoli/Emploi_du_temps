@@ -21,8 +21,7 @@ def index(request):
 #Récupère toutes les tâches stockés dans la base de données et les envoie dans le calendrier du template index.html
 def all_taches(request):                                                                                                 
     all_taches = Tache.objects.all() #Important de tout généré (avec all() et pas filtre()) sinon erreur sur les cas avec des dates sur deux mois du style date de début en mars et date de fin en avril. On verra la tache le mois de mars mais pas en avril.
-    out = []
-    aTechnicien = True                                                                                                
+    out = []                                                                                               
     for tache in all_taches:
         color = None
         if tache.type == "VGP":
@@ -269,7 +268,7 @@ def absences(request):
         i += 1
     tab += '</tbody></table>'
 
-    absences2 = Absence.objects.filter(end__lt=datetime.today()).order_by('start')
+    absences2 = Absence.objects.filter(end__lt=datetime.today()).order_by('-start')
     if not absences2:
         messages.error(request, 'Aucune absence programmé.')
     tab2 = '<table border="1" class="dataframe" id="tab2"> <thead> <tr style="text-align: right;"></th><th></th><th>Motif d\'absence</th> <th>date de début</th> <th>date de fin</th> </tr> </thead> <tbody>'
@@ -306,8 +305,8 @@ def getAbsenceById(request, id_abs):
     listAbsence = []
     listAbsence.append(absence.id_abs)
     listAbsence.append(absence.motif)
-    listAbsence.append(absence.start)
-    listAbsence.append(absence.end)
+    listAbsence.append(absence.start.replace(hour=12, minute=0, second=0, microsecond=0))
+    listAbsence.append(absence.end.replace(hour=12, minute=0, second=0, microsecond=0))
     return JsonResponse({'absence': listAbsence})
 
 # Permet de récupérer une tache en fonction de son identifiant et renvoie chaque information de la tache sous forme de tableau python.
