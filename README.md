@@ -2,6 +2,8 @@
 
 Mon application est un emploi du temps professionnel. C'est une application web qui utilise le framework Django en Python.
 
+Vous pouvez tester l'application sur ce site web : http://34.175.103.55:8080/
+
 Pour utiliser mon application, vous devez avoir une base de données MySQL (configurez votre connexion dans le fichier settings.py du répertoire devproject).
 
 Voici la partie de settings.py correspondant à votre connexion à la base de données :
@@ -40,4 +42,4 @@ Votre projet est maintenant configuré. Vous pouvez lancer l'application en fais
 python manage.py runserver
 ```
 
-Vous pouvez accéder à l'application web à l'adresse suivante : http://127.0.0.1:8000
+Vous pouvez accéder à l'application web à l'adresse suivante si vous êtes en local: http://127.0.0.1:8000
