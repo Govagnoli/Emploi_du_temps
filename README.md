@@ -20,7 +20,7 @@ DATABASES = {
 }
 ```
 
-Pensez à bien télécharger les ressources nécessaires pour faire fonctionner le projet. Les requirements sont stockés dans le fichier requirements.txt. (Certains requirements sont nécessaires pour un hébergement chez Heroku.)
+Pensez à bien télécharger les ressources nécessaires pour faire fonctionner le projet. Les requirements sont stockés dans le fichier requirements.txt.
 
 Pour les télécharger, veuillez installer Python (j'utilise la version 3.11.1) avec pip et exécuter les commandes suivantes dans votre terminal (ou dans votre environnement virtuel du projet) :
 
