@@ -417,12 +417,12 @@ def add_Excell_taches(request):
         technicien = str(technicien)
         nom_tech = technicien[1:]
         nom_tech = nom_tech.upper()
-        if(nom_tech == "GALVE") :
-            nom_tech = "Galve"
-            prenom_tech = "Franck"
-        elif(nom_tech == "AURIOL"):
-            nom_tech = "Auriol"
-            prenom_tech = "Clément"
+        if(nom_tech == "TITI") :
+            nom_tech = "Titi"
+            prenom_tech = "Léo"
+        elif(nom_tech == "TOTO"):
+            nom_tech = "Toto"
+            prenom_tech = "Julien"
         elif nom_tech=="AN":
             nom_tech = ""
             prenom_tech = ""
