@@ -1,6 +1,6 @@
 # Emploi_du_temps
 
-Mon application est un emploi du temps professionnel. C'est une application web qui utilise le framework Django en Python.
+Mon application est un emploi du temps professionnel. C'est une application web qui utilise le framework Django en Python. Elle fut développée en avril 2023.
 
 Vous pouvez tester l'application sur ce site web : http://34.175.103.55:8080/
 
