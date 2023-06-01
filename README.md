@@ -6,7 +6,7 @@ Vous pouvez tester l'application sur ce site web : http://34.175.103.55:8080/
 
 Pour utiliser mon application, vous devez avoir une base de données MySQL (configurez votre connexion dans le fichier settings.py du répertoire devproject).
 
-Voici la partie de settings.py correspondant à votre connexion à la base de données :
+Voici la partie de settings.py correspondant à votre connexion à la base de données : J'utilise une base de données local avec WampServer
 ```
 DATABASES = {
     'default': {
