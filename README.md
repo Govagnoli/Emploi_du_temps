@@ -2,7 +2,7 @@
 
 Mon application est un emploi du temps professionnel. C'est une application web qui utilise le framework Django en Python. Elle fut développée en avril 2023.
 
-Vous pouvez tester l'application sur ce site web : http://34.175.103.55:8080/
+Vous pouvez tester l'application sur ce site web : [http://34.175.103.55:8080/](http://34.175.51.131:8080/)
 
 Pour utiliser mon application, vous devez avoir une base de données MySQL (configurez votre connexion dans le fichier settings.py du répertoire devproject).
 
